@@ -284,6 +284,24 @@ input:focus {
 .exercise-label {
   display: grid;
   gap: 6px;
+  flex: 1;
+}
+
+.drag-grip {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: rgba(219, 232, 255, 0.45);
+  color: var(--muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
 }
 
 .workout-name,

@@ -1,5 +1,5 @@
 const STORAGE_KEY = "mishitza-state";
-const DRAG_HOLD_DURATION_MS = 500;
+const DRAG_HOLD_DURATION_MS = 100;
 const DELETE_HOLD_DURATION_MS = 1500;
 const DRAG_START_DISTANCE_PX = 10;
 
@@ -141,6 +141,12 @@ function renderHomeScreen() {
 
       item.appendChild(meta);
 
+      const grip = document.createElement("span");
+      grip.className = "drag-grip";
+      grip.textContent = "≡";
+      grip.setAttribute("aria-label", "Reorder workout");
+      item.appendChild(grip);
+
       if (state.lastCompletedWorkoutId === workout.id) {
         const badgeWrap = document.createElement("div");
         badgeWrap.className = "badge-stack";
@@ -154,7 +160,7 @@ function renderHomeScreen() {
         date.textContent = formatCompletionDate(workout.lastCompletedAt);
 
         badgeWrap.append(badge, date);
-        item.appendChild(badgeWrap);
+        item.insertBefore(badgeWrap, grip);
       }
 
       item.addEventListener("click", () => {
@@ -174,7 +180,8 @@ function renderHomeScreen() {
         render();
       });
 
-      attachHoldGesture(item, {
+      attachHoldGesture(grip, {
+        dragElement: item,
         container: workoutList,
         itemSelector: ".workout-item",
         onHold: () => {
@@ -284,7 +291,12 @@ function renderWorkoutScreen(workoutId) {
       checkmark.className = "checkmark";
       checkmark.textContent = exercise.checked ? "✓" : "";
 
-      item.append(label, checkmark);
+      const grip = document.createElement("span");
+      grip.className = "drag-grip";
+      grip.textContent = "≡";
+      grip.setAttribute("aria-label", "Reorder exercise");
+
+      item.append(checkmark, label, grip);
 
       item.addEventListener("click", () => {
         exercise.checked = !exercise.checked;
@@ -307,7 +319,8 @@ function renderWorkoutScreen(workoutId) {
         syncWorkoutProgress(progressBar, completeMessage, workout);
       });
 
-      attachHoldGesture(item, {
+      attachHoldGesture(grip, {
+        dragElement: item,
         container: exerciseList,
         itemSelector: ".exercise-item",
         onHold: () => {
@@ -407,7 +420,7 @@ function resetWorkoutProgress(workoutId) {
   saveState();
 }
 
-function attachHoldGesture(element, { container, itemSelector, onHold, onReorder }) {
+function attachHoldGesture(handle, { dragElement, container, itemSelector, onHold, onReorder }) {
   let dragTimeoutId = null;
   let deleteTimeoutId = null;
   let suppressClick = false;
@@ -440,26 +453,26 @@ function attachHoldGesture(element, { container, itemSelector, onHold, onReorder
   };
 
   const resetVisualState = () => {
-    element.classList.remove("hold-ready");
+    dragElement.classList.remove("hold-ready");
 
     if (!dragging) {
       return;
     }
 
     dragging = false;
-    element.classList.remove("dragging");
-    element.style.width = "";
-    element.style.left = "";
-    element.style.top = "";
-    element.style.position = "";
-    element.style.zIndex = "";
-    element.style.pointerEvents = "";
+    dragElement.classList.remove("dragging");
+    dragElement.style.width = "";
+    dragElement.style.left = "";
+    dragElement.style.top = "";
+    dragElement.style.position = "";
+    dragElement.style.zIndex = "";
+    dragElement.style.pointerEvents = "";
   };
 
   const startDrag = (event) => {
     dragging = true;
     suppressClick = true;
-    dragRect = element.getBoundingClientRect();
+    dragRect = dragElement.getBoundingClientRect();
     pointerOffsetY = event.clientY - dragRect.top;
     pointerOffsetX = event.clientX - dragRect.left;
 
@@ -467,17 +480,17 @@ function attachHoldGesture(element, { container, itemSelector, onHold, onReorder
     placeholder.className = "drag-placeholder";
     placeholder.style.height = `${dragRect.height}px`;
 
-    container.insertBefore(placeholder, element);
+    container.insertBefore(placeholder, dragElement);
 
-    element.classList.add("dragging");
-    element.style.width = `${dragRect.width}px`;
-    element.style.left = `${dragRect.left}px`;
-    element.style.top = `${dragRect.top}px`;
-    element.style.position = "fixed";
-    element.style.zIndex = "50";
-    element.style.pointerEvents = "none";
+    dragElement.classList.add("dragging");
+    dragElement.style.width = `${dragRect.width}px`;
+    dragElement.style.left = `${dragRect.left}px`;
+    dragElement.style.top = `${dragRect.top}px`;
+    dragElement.style.position = "fixed";
+    dragElement.style.zIndex = "50";
+    dragElement.style.pointerEvents = "none";
 
-    document.body.appendChild(element);
+    document.body.appendChild(dragElement);
     updateDragPosition(event);
   };
 
@@ -486,10 +499,10 @@ function attachHoldGesture(element, { container, itemSelector, onHold, onReorder
       return;
     }
 
-    element.style.left = `${event.clientX - pointerOffsetX}px`;
-    element.style.top = `${event.clientY - pointerOffsetY}px`;
+    dragElement.style.left = `${event.clientX - pointerOffsetX}px`;
+    dragElement.style.top = `${event.clientY - pointerOffsetY}px`;
 
-    const siblings = [...container.querySelectorAll(itemSelector)].filter((item) => item !== element);
+    const siblings = [...container.querySelectorAll(itemSelector)].filter((item) => item !== dragElement);
     let inserted = false;
 
     for (const sibling of siblings) {
@@ -513,7 +526,7 @@ function attachHoldGesture(element, { container, itemSelector, onHold, onReorder
       return;
     }
 
-    container.insertBefore(element, placeholder);
+    container.insertBefore(dragElement, placeholder);
     placeholder.remove();
     placeholder = null;
     resetVisualState();
@@ -555,7 +568,7 @@ function attachHoldGesture(element, { container, itemSelector, onHold, onReorder
 
     if (dragging) {
       finishDrag();
-      element.blur();
+      dragElement.blur();
     } else if (holdReady) {
       suppressClick = true;
       onHold();
@@ -575,7 +588,7 @@ function attachHoldGesture(element, { container, itemSelector, onHold, onReorder
     cleanupPointerListeners();
 
     if (dragging && placeholder) {
-      container.insertBefore(element, placeholder);
+      container.insertBefore(dragElement, placeholder);
       placeholder.remove();
       placeholder = null;
     }
@@ -585,7 +598,7 @@ function attachHoldGesture(element, { container, itemSelector, onHold, onReorder
     resetVisualState();
   };
 
-  element.addEventListener("pointerdown", (event) => {
+  handle.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) {
       return;
     }
@@ -599,7 +612,7 @@ function attachHoldGesture(element, { container, itemSelector, onHold, onReorder
 
     dragTimeoutId = window.setTimeout(() => {
       holdReady = true;
-      element.classList.add("hold-ready");
+      dragElement.classList.add("hold-ready");
     }, DRAG_HOLD_DURATION_MS);
 
     deleteTimeoutId = window.setTimeout(() => {
@@ -620,7 +633,7 @@ function attachHoldGesture(element, { container, itemSelector, onHold, onReorder
     window.addEventListener("pointercancel", onPointerCancel);
   });
 
-  element.addEventListener(
+  handle.addEventListener(
     "click",
     (event) => {
       if (!suppressClick) {
