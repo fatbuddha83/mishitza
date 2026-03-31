@@ -247,6 +247,8 @@ function renderWorkoutScreen(workoutId) {
 
   const fragment = workoutTemplate.content.cloneNode(true);
   const title = fragment.getElementById("workout-screen-title");
+  const editTitleButton = fragment.getElementById("edit-workout-title");
+  const titleEditInput = fragment.getElementById("workout-title-edit-input");
   const backButton = fragment.getElementById("back-home");
   const exerciseList = fragment.getElementById("exercise-list");
   const showExerciseFormButton = fragment.getElementById("show-exercise-form");
@@ -257,9 +259,69 @@ function renderWorkoutScreen(workoutId) {
   const progressBar = fragment.getElementById("workout-progress-bar");
 
   title.textContent = workout.title;
+  titleEditInput.value = workout.title;
   progressBar.style.width = `${getWorkoutProgress(workout)}%`;
 
+  let isEditingTitle = false;
+
+  const saveWorkoutTitle = () => {
+    if (!isEditingTitle) {
+      return;
+    }
+
+    const nextTitle = titleEditInput.value.trim();
+
+    if (nextTitle.length >= 3) {
+      workout.title = nextTitle;
+      title.textContent = nextTitle;
+      saveState();
+    } else {
+      titleEditInput.value = workout.title;
+    }
+
+    isEditingTitle = false;
+    title.classList.remove("hidden");
+    editTitleButton.classList.remove("hidden");
+    titleEditInput.classList.add("hidden");
+  };
+
+  editTitleButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    isEditingTitle = true;
+    title.classList.add("hidden");
+    editTitleButton.classList.add("hidden");
+    titleEditInput.classList.remove("hidden");
+    titleEditInput.value = workout.title;
+    titleEditInput.focus();
+    titleEditInput.select();
+
+    window.setTimeout(() => {
+      document.addEventListener("click", handleOutsideTitleSave);
+    }, 0);
+  });
+
+  titleEditInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      saveWorkoutTitle();
+      document.removeEventListener("click", handleOutsideTitleSave);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      titleEditInput.value = workout.title;
+      saveWorkoutTitle();
+      document.removeEventListener("click", handleOutsideTitleSave);
+    }
+  });
+
+  titleEditInput.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
   backButton.addEventListener("click", () => {
+    document.removeEventListener("click", handleOutsideTitleSave);
     state.currentWorkoutId = null;
     saveState();
     render();
@@ -392,6 +454,20 @@ function renderWorkoutScreen(workoutId) {
   }
 
   app.appendChild(fragment);
+
+  function handleOutsideTitleSave(event) {
+    if (!isEditingTitle) {
+      document.removeEventListener("click", handleOutsideTitleSave);
+      return;
+    }
+
+    if (titleEditInput.contains(event.target) || editTitleButton.contains(event.target)) {
+      return;
+    }
+
+    saveWorkoutTitle();
+    document.removeEventListener("click", handleOutsideTitleSave);
+  }
 }
 
 function syncExerciseItem(item, exercise, checkmark, name) {

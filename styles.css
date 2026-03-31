@@ -94,7 +94,7 @@ button {
 }
 
 .workout-head {
-  align-items: flex-start;
+  justify-content: center;
 }
 
 .workout-head-copy {
@@ -109,9 +109,51 @@ button {
   text-align: center;
 }
 
-.workout-head-spacer {
-  width: 82px;
-  flex-shrink: 0;
+.workout-title-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: fit-content;
+  margin: 0 auto;
+  transform: translateX(18px);
+}
+
+.edit-title-button {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: transform 160ms ease, color 160ms ease, opacity 160ms ease;
+}
+
+.edit-title-button:hover {
+  transform: translateY(-1px);
+  color: var(--text);
+}
+
+.edit-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.edit-icon-flipped {
+  transform: scaleX(-1);
+}
+
+.title-edit-input {
+  max-width: 360px;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .progress-shell {
@@ -252,6 +294,10 @@ input:focus {
   text-align: left;
 }
 
+.exercise-item {
+  padding: 11px 14px;
+}
+
 .workout-item {
   cursor: pointer;
 }
@@ -298,6 +344,7 @@ input:focus {
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
+  margin-right: -6px;
 }
 
 .drag-grip-dots {
@@ -553,6 +600,10 @@ input:focus {
   .workout-item,
   .exercise-item {
     padding: 16px;
+  }
+
+  .exercise-item {
+    padding: 11px 14px;
   }
 
   .workout-head-spacer {

@@ -51,14 +51,24 @@
     <template id="workout-screen-template">
       <section class="screen screen-workout">
         <div class="section-head workout-head">
-          <button class="back-button" id="back-home">Back</button>
           <div class="workout-head-copy">
-            <h2 id="workout-screen-title"></h2>
+            <div class="workout-title-row">
+              <h2 id="workout-screen-title"></h2>
+              <button class="edit-title-button" id="edit-workout-title" aria-label="Edit workout title">
+                <span class="edit-icon edit-icon-flipped" aria-hidden="true">✎</span>
+              </button>
+            </div>
+            <input
+              id="workout-title-edit-input"
+              class="title-edit-input hidden"
+              type="text"
+              maxlength="60"
+              placeholder="Workout title"
+            />
             <div class="progress-shell" aria-label="Workout progress">
               <div id="workout-progress-bar" class="progress-bar"></div>
             </div>
           </div>
-          <div class="workout-head-spacer" aria-hidden="true"></div>
         </div>
 
         <div id="exercise-list" class="exercise-list"></div>
@@ -69,6 +79,10 @@
             <button class="primary-button" id="confirm-add-exercise">Add</button>
           </div>
           <button class="primary-button add-workout-button" id="show-exercise-form">+ Add exercise</button>
+        </div>
+
+        <div class="bottom-action">
+          <button class="back-button" id="back-home">&lt; Back</button>
         </div>
 
         <div id="workout-complete-message" class="complete-message hidden">
