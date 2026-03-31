@@ -1,6 +1,6 @@
 const STORAGE_KEY = "mishitza-state";
 const DRAG_HOLD_DURATION_MS = 100;
-const DELETE_HOLD_DURATION_MS = 1500;
+const DELETE_HOLD_DURATION_MS = 1200;
 const DRAG_START_DISTANCE_PX = 10;
 
 const app = document.getElementById("app");
