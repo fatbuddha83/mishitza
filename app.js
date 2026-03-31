@@ -31,6 +31,12 @@ function loadState() {
       workouts: Array.isArray(parsed.workouts)
         ? parsed.workouts.map((workout) => ({
             ...workout,
+            exercises: Array.isArray(workout.exercises)
+              ? workout.exercises.map((exercise) => ({
+                  ...exercise,
+                  reps: exercise.reps ?? "",
+                }))
+              : [],
             lastCompletedAt: workout.lastCompletedAt ?? null,
           }))
         : [],
@@ -253,7 +259,8 @@ function renderWorkoutScreen(workoutId) {
   const exerciseList = fragment.getElementById("exercise-list");
   const showExerciseFormButton = fragment.getElementById("show-exercise-form");
   const exerciseForm = fragment.getElementById("exercise-form");
-  const exerciseInput = fragment.getElementById("exercise-input");
+  const exerciseNameInput = fragment.getElementById("exercise-name-input");
+  const exerciseRepsInput = fragment.getElementById("exercise-reps-input");
   const confirmAddExerciseButton = fragment.getElementById("confirm-add-exercise");
   const completeMessage = fragment.getElementById("workout-complete-message");
   const progressBar = fragment.getElementById("workout-progress-bar");
@@ -329,32 +336,48 @@ function renderWorkoutScreen(workoutId) {
 
   showExerciseFormButton.addEventListener("click", () => {
     exerciseForm.classList.remove("hidden");
-    exerciseInput.focus();
+    exerciseNameInput.focus();
     scrollIntoViewAfterKeyboard(exerciseForm);
   });
 
   const submitExercise = () => {
-    const name = exerciseInput.value.trim();
+    const name = exerciseNameInput.value.trim();
+    const reps = exerciseRepsInput.value.trim();
 
     if (!name) {
-      exerciseInput.focus();
+      exerciseNameInput.focus();
+      return;
+    }
+
+    if (!reps) {
+      exerciseRepsInput.focus();
       return;
     }
 
     workout.exercises.push({
       id: crypto.randomUUID(),
       name,
+      reps,
       checked: false,
     });
 
-    exerciseInput.value = "";
+    exerciseNameInput.value = "";
+    exerciseRepsInput.value = "";
     exerciseForm.classList.add("hidden");
     saveState();
     render();
   };
 
   confirmAddExerciseButton.addEventListener("click", submitExercise);
-  exerciseInput.addEventListener("keydown", (event) => {
+  exerciseNameInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    exerciseRepsInput.focus();
+  });
+  exerciseRepsInput.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") {
       return;
     }
@@ -362,7 +385,10 @@ function renderWorkoutScreen(workoutId) {
     event.preventDefault();
     submitExercise();
   });
-  exerciseInput.addEventListener("focus", () => {
+  exerciseNameInput.addEventListener("focus", () => {
+    scrollIntoViewAfterKeyboard(exerciseForm);
+  });
+  exerciseRepsInput.addEventListener("focus", () => {
     scrollIntoViewAfterKeyboard(exerciseForm);
   });
 
@@ -381,7 +407,11 @@ function renderWorkoutScreen(workoutId) {
       name.className = "exercise-name";
       name.textContent = exercise.name;
 
-      label.appendChild(name);
+      const reps = document.createElement("span");
+      reps.className = "exercise-reps";
+      reps.textContent = exercise.reps || "";
+
+      label.append(name, reps);
 
       const checkmark = document.createElement("span");
       checkmark.className = "checkmark";

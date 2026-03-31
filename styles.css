@@ -63,6 +63,10 @@ button {
   line-height: 0.95;
 }
 
+.screen-home .hero {
+  margin-bottom: 24px;
+}
+
 .eyebrow {
   margin: 0;
   text-transform: uppercase;
@@ -333,6 +337,13 @@ input:focus {
   flex: 1;
 }
 
+.exercise-label {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+}
+
 .drag-grip {
   display: inline-grid;
   place-items: center;
@@ -366,6 +377,13 @@ input:focus {
   font-size: 1.08rem;
   font-weight: 700;
   transition: opacity 180ms ease, text-decoration-color 180ms ease;
+}
+
+.exercise-reps {
+  font-size: 1.02rem;
+  font-weight: 400;
+  color: var(--text);
+  margin-left: 1ch;
 }
 
 .badge {
@@ -412,6 +430,7 @@ input:focus {
   opacity: 0.72;
 }
 
+
 .checkmark {
   width: 28px;
   height: 28px;
@@ -431,8 +450,8 @@ input:focus {
   transform: scale(1.05);
 }
 
-.inline-form {
-  display: flex;
+.exercise-form {
+  display: grid;
   gap: 10px;
   margin-top: 14px;
 }
@@ -564,6 +583,10 @@ input:focus {
 }
 
 .exercise-action .inline-form {
+  width: 100%;
+}
+
+.exercise-action .exercise-form {
   width: 100%;
 }
 

@@ -16,11 +16,6 @@
   </head>
   <body>
     <div class="app-shell">
-      <header class="hero">
-        <p class="eyebrow">Workout Tracker</p>
-        <h1>Mishitza</h1>
-      </header>
-
       <main id="app"></main>
     </div>
 
@@ -28,6 +23,11 @@
 
     <template id="home-screen-template">
       <section class="screen screen-home">
+        <header class="hero">
+          <p class="eyebrow">Workout Tracker</p>
+          <h1>Mishitza</h1>
+        </header>
+
         <div id="workout-list" class="workout-list"></div>
 
         <div class="bottom-action">
@@ -74,8 +74,9 @@
         <div id="exercise-list" class="exercise-list"></div>
 
         <div class="bottom-action exercise-action">
-          <div id="exercise-form" class="inline-form hidden">
-            <input id="exercise-input" type="text" maxlength="80" placeholder="Add an exercise" />
+          <div id="exercise-form" class="exercise-form hidden">
+            <input id="exercise-name-input" type="text" maxlength="80" placeholder="Exercise name" />
+            <input id="exercise-reps-input" type="text" maxlength="30" placeholder="Number of reps" />
             <button class="primary-button" id="confirm-add-exercise">Add</button>
           </div>
           <button class="primary-button add-workout-button" id="show-exercise-form">+ Add exercise</button>
