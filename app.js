@@ -62,7 +62,7 @@ function normalizeState(parsed) {
             ? workout.exercises.map((exercise) => ({
                 id: exercise.id || crypto.randomUUID(),
                 name: exercise.name ?? "",
-                reps: exercise.reps ?? "",
+                max: exercise.max ?? exercise.reps ?? "",
                 checked: Boolean(exercise.checked),
               }))
             : [],
@@ -339,7 +339,7 @@ function renderWorkoutScreen(workoutId) {
   const showExerciseFormButton = fragment.getElementById("show-exercise-form");
   const exerciseForm = fragment.getElementById("exercise-form");
   const exerciseNameInput = fragment.getElementById("exercise-name-input");
-  const exerciseRepsInput = fragment.getElementById("exercise-reps-input");
+  const exerciseMaxInput = fragment.getElementById("exercise-max-input");
   const confirmAddExerciseButton = fragment.getElementById("confirm-add-exercise");
   const completeMessage = fragment.getElementById("workout-complete-message");
   const progressBar = fragment.getElementById("workout-progress-bar");
@@ -422,27 +422,27 @@ function renderWorkoutScreen(workoutId) {
 
   const submitExercise = () => {
     const name = exerciseNameInput.value.trim();
-    const reps = exerciseRepsInput.value.trim();
+    const max = exerciseMaxInput.value.trim();
 
     if (!name) {
       exerciseNameInput.focus();
       return;
     }
 
-    if (!reps) {
-      exerciseRepsInput.focus();
+    if (!max) {
+      exerciseMaxInput.focus();
       return;
     }
 
     workout.exercises.push({
       id: crypto.randomUUID(),
       name,
-      reps,
+      max,
       checked: false,
     });
 
     exerciseNameInput.value = "";
-    exerciseRepsInput.value = "";
+    exerciseMaxInput.value = "";
     exerciseForm.classList.add("hidden");
     document.removeEventListener("click", handleOutsideExerciseForm);
     saveState();
@@ -456,9 +456,9 @@ function renderWorkoutScreen(workoutId) {
     }
 
     event.preventDefault();
-    exerciseRepsInput.focus();
+    exerciseMaxInput.focus();
   });
-  exerciseRepsInput.addEventListener("keydown", (event) => {
+  exerciseMaxInput.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") {
       return;
     }
@@ -469,13 +469,13 @@ function renderWorkoutScreen(workoutId) {
   exerciseNameInput.addEventListener("focus", () => {
     scrollIntoViewAfterKeyboard(exerciseForm);
   });
-  exerciseRepsInput.addEventListener("focus", () => {
+  exerciseMaxInput.addEventListener("focus", () => {
     scrollIntoViewAfterKeyboard(exerciseForm);
   });
   exerciseNameInput.addEventListener("click", (event) => {
     event.stopPropagation();
   });
-  exerciseRepsInput.addEventListener("click", (event) => {
+  exerciseMaxInput.addEventListener("click", (event) => {
     event.stopPropagation();
   });
   confirmAddExerciseButton.addEventListener("click", (event) => {
@@ -497,11 +497,16 @@ function renderWorkoutScreen(workoutId) {
       name.className = "exercise-name";
       name.textContent = exercise.name;
 
-      const reps = document.createElement("span");
-      reps.className = "exercise-reps";
-      reps.textContent = exercise.reps || "";
+      const max = document.createElement("span");
+      max.className = "exercise-max";
+      max.textContent = exercise.max || "";
 
-      label.append(name, reps);
+      const editButton = document.createElement("button");
+      editButton.className = "edit-title-button exercise-edit-button";
+      editButton.setAttribute("aria-label", "Edit exercise");
+      editButton.innerHTML = '<span class="edit-icon edit-icon-flipped" aria-hidden="true">✎</span>';
+
+      label.append(name, max, editButton);
 
       const checkmark = document.createElement("span");
       checkmark.className = "checkmark";
@@ -520,7 +525,22 @@ function renderWorkoutScreen(workoutId) {
 
       item.append(checkmark, label, grip);
 
+      editButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        renderExerciseEditor({
+          item,
+          exercise,
+          workout,
+          progressBar,
+          completeMessage,
+        });
+      });
+
       item.addEventListener("click", () => {
+        if (item.querySelector(".inline-exercise-editor")) {
+          return;
+        }
+
         exercise.checked = !exercise.checked;
         updateCompletionState(workout);
         saveState();
@@ -530,6 +550,10 @@ function renderWorkoutScreen(workoutId) {
 
       item.addEventListener("keydown", (event) => {
         if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
+
+        if (item.querySelector(".inline-exercise-editor")) {
           return;
         }
 
@@ -601,7 +625,7 @@ function renderWorkoutScreen(workoutId) {
 
     exerciseForm.classList.add("hidden");
     exerciseNameInput.value = "";
-    exerciseRepsInput.value = "";
+    exerciseMaxInput.value = "";
     document.removeEventListener("click", handleOutsideExerciseForm);
   }
 }
@@ -620,6 +644,86 @@ function syncWorkoutProgress(progressBar, completeMessage, workout) {
   });
 
   completeMessage.classList.toggle("hidden", !isWorkoutComplete(workout));
+}
+
+function renderExerciseEditor({ item, exercise, workout, progressBar, completeMessage }) {
+  item.innerHTML = "";
+  item.classList.remove("checked");
+  item.removeAttribute("role");
+  item.removeAttribute("tabindex");
+
+  const editor = document.createElement("div");
+  editor.className = "card workout-form exercise-form inline-exercise-editor";
+
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.maxLength = 80;
+  nameInput.placeholder = "Exercise name";
+  nameInput.value = exercise.name;
+
+  const maxInput = document.createElement("input");
+  maxInput.type = "text";
+  maxInput.maxLength = 30;
+  maxInput.placeholder = "Max (kg, time)";
+  maxInput.value = exercise.max || "";
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "primary-button";
+  saveButton.textContent = "Save";
+
+  const save = () => {
+    const nextName = nameInput.value.trim();
+    const nextMax = maxInput.value.trim();
+
+    if (!nextName) {
+      nameInput.focus();
+      return;
+    }
+
+    if (!nextMax) {
+      maxInput.focus();
+      return;
+    }
+
+    exercise.name = nextName;
+    exercise.max = nextMax;
+    saveState();
+    render();
+    syncWorkoutProgress(progressBar, completeMessage, workout);
+  };
+
+  nameInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    maxInput.focus();
+  });
+
+  maxInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    save();
+  });
+
+  saveButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    save();
+  });
+
+  editor.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
+  editor.append(nameInput, maxInput, saveButton);
+  item.appendChild(editor);
+  nameInput.focus();
+  nameInput.select();
 }
 function isWorkoutComplete(workout) {
   return workout.exercises.length > 0 && workout.exercises.every((exercise) => exercise.checked);
