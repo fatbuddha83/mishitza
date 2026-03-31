@@ -18,37 +18,13 @@ function loadState() {
   const saved = localStorage.getItem(STORAGE_KEY);
 
   if (!saved) {
-    return {
-      workouts: [],
-      currentWorkoutId: null,
-      lastCompletedWorkoutId: null,
-    };
+    return createEmptyState();
   }
 
   try {
-    const parsed = JSON.parse(saved);
-    return {
-      workouts: Array.isArray(parsed.workouts)
-        ? parsed.workouts.map((workout) => ({
-            ...workout,
-            exercises: Array.isArray(workout.exercises)
-              ? workout.exercises.map((exercise) => ({
-                  ...exercise,
-                  reps: exercise.reps ?? "",
-                }))
-              : [],
-            lastCompletedAt: workout.lastCompletedAt ?? null,
-          }))
-        : [],
-      currentWorkoutId: parsed.currentWorkoutId ?? null,
-      lastCompletedWorkoutId: parsed.lastCompletedWorkoutId ?? null,
-    };
+    return normalizeState(JSON.parse(saved));
   } catch {
-    return {
-      workouts: [],
-      currentWorkoutId: null,
-      lastCompletedWorkoutId: null,
-    };
+    return createEmptyState();
   }
 }
 
@@ -66,6 +42,62 @@ function registerServiceWorker() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function createEmptyState() {
+  return {
+    workouts: [],
+    currentWorkoutId: null,
+    lastCompletedWorkoutId: null,
+  };
+}
+
+function normalizeState(parsed) {
+  return {
+    workouts: Array.isArray(parsed.workouts)
+      ? parsed.workouts.map((workout) => ({
+          id: workout.id || crypto.randomUUID(),
+          title: workout.title ?? "",
+          exercises: Array.isArray(workout.exercises)
+            ? workout.exercises.map((exercise) => ({
+                id: exercise.id || crypto.randomUUID(),
+                name: exercise.name ?? "",
+                reps: exercise.reps ?? "",
+                checked: Boolean(exercise.checked),
+              }))
+            : [],
+          lastCompletedAt: workout.lastCompletedAt ?? null,
+        }))
+      : [],
+    currentWorkoutId: parsed.currentWorkoutId ?? null,
+    lastCompletedWorkoutId: parsed.lastCompletedWorkoutId ?? null,
+  };
+}
+
+function replaceState(nextState) {
+  state.workouts = nextState.workouts;
+  state.currentWorkoutId = nextState.currentWorkoutId;
+  state.lastCompletedWorkoutId = nextState.lastCompletedWorkoutId;
+}
+
+function exportStateToJson() {
+  const backup = {
+    workouts: state.workouts,
+    lastCompletedWorkoutId: state.lastCompletedWorkoutId,
+    exportedAt: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const date = new Date();
+  const stamp = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+  link.href = url;
+  link.download = `mishitza-backup-${stamp}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function render() {
@@ -92,6 +124,9 @@ function renderHomeScreen() {
   const saveWorkoutButton = fragment.getElementById("save-workout");
   const workoutTitleInput = fragment.getElementById("workout-title-input");
   const workoutList = fragment.getElementById("workout-list");
+  const exportButton = fragment.getElementById("export-data");
+  const importButton = fragment.getElementById("import-data");
+  const importFileInput = fragment.getElementById("import-file-input");
 
   showFormButton.addEventListener("click", () => {
     document.addEventListener("click", handleOutsideWorkoutForm);
@@ -136,6 +171,33 @@ function renderHomeScreen() {
   });
   saveWorkoutButton.addEventListener("click", (event) => {
     event.stopPropagation();
+  });
+  exportButton.addEventListener("click", exportStateToJson);
+  importButton.addEventListener("click", () => {
+    importFileInput.click();
+  });
+  importFileInput.addEventListener("change", async () => {
+    const [file] = importFileInput.files || [];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const imported = normalizeState(JSON.parse(await file.text()));
+      replaceState(imported);
+      saveState();
+      render();
+    } catch {
+      showConfirmDialog({
+        title: "Import failed",
+        message: "Please choose a valid Mishitza JSON backup.",
+        confirmLabel: "OK",
+        onConfirm: () => {},
+      });
+    } finally {
+      importFileInput.value = "";
+    }
   });
 
   if (state.workouts.length === 0) {
