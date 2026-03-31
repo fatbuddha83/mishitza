@@ -80,6 +80,10 @@ button {
   animation: screen-enter 240ms ease;
 }
 
+.screen-workout {
+  margin-top: 14px;
+}
+
 .section-head {
   display: flex;
   align-items: center;
@@ -239,6 +243,14 @@ input:focus {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 18px;
+}
+
+.workout-form .actions {
+  justify-content: center;
+}
+
+.workout-form .actions .primary-button {
+  width: 100%;
 }
 
 .primary-button,
@@ -587,6 +599,10 @@ input:focus {
 }
 
 .exercise-action .exercise-form {
+  width: 100%;
+}
+
+.exercise-form .primary-button {
   width: 100%;
 }
 

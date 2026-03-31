@@ -33,13 +33,11 @@
         <div class="bottom-action">
           <div class="card workout-form hidden" id="workout-form-card">
             <label class="field">
-              <span>Workout title</span>
               <input id="workout-title-input" type="text" maxlength="60" placeholder="Push day" />
             </label>
 
             <div class="actions">
-              <button class="ghost-button" id="cancel-workout-form">Cancel</button>
-              <button class="primary-button" id="save-workout">Save workout</button>
+              <button class="primary-button" id="save-workout">Add</button>
             </div>
           </div>
 
@@ -74,7 +72,7 @@
         <div id="exercise-list" class="exercise-list"></div>
 
         <div class="bottom-action exercise-action">
-          <div id="exercise-form" class="exercise-form hidden">
+          <div id="exercise-form" class="card workout-form exercise-form hidden">
             <input id="exercise-name-input" type="text" maxlength="80" placeholder="Exercise name" />
             <input id="exercise-reps-input" type="text" maxlength="30" placeholder="Number of reps" />
             <button class="primary-button" id="confirm-add-exercise">Add</button>

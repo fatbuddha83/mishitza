@@ -89,20 +89,15 @@ function renderHomeScreen() {
   const fragment = homeTemplate.content.cloneNode(true);
   const formCard = fragment.getElementById("workout-form-card");
   const showFormButton = fragment.getElementById("show-workout-form");
-  const cancelFormButton = fragment.getElementById("cancel-workout-form");
   const saveWorkoutButton = fragment.getElementById("save-workout");
   const workoutTitleInput = fragment.getElementById("workout-title-input");
   const workoutList = fragment.getElementById("workout-list");
 
   showFormButton.addEventListener("click", () => {
+    document.addEventListener("click", handleOutsideWorkoutForm);
     formCard.classList.remove("hidden");
     workoutTitleInput.focus();
     scrollIntoViewAfterKeyboard(formCard);
-  });
-
-  cancelFormButton.addEventListener("click", () => {
-    formCard.classList.add("hidden");
-    workoutTitleInput.value = "";
   });
 
   const submitWorkout = () => {
@@ -119,6 +114,7 @@ function renderHomeScreen() {
       exercises: [],
     });
 
+    document.removeEventListener("click", handleOutsideWorkoutForm);
     saveState();
     render();
   };
@@ -134,6 +130,12 @@ function renderHomeScreen() {
   });
   workoutTitleInput.addEventListener("focus", () => {
     scrollIntoViewAfterKeyboard(formCard);
+  });
+  workoutTitleInput.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  saveWorkoutButton.addEventListener("click", (event) => {
+    event.stopPropagation();
   });
 
   if (state.workouts.length === 0) {
@@ -239,6 +241,21 @@ function renderHomeScreen() {
   }
 
   app.appendChild(fragment);
+
+  function handleOutsideWorkoutForm(event) {
+    if (formCard.classList.contains("hidden")) {
+      document.removeEventListener("click", handleOutsideWorkoutForm);
+      return;
+    }
+
+    if (formCard.contains(event.target) || showFormButton.contains(event.target)) {
+      return;
+    }
+
+    formCard.classList.add("hidden");
+    workoutTitleInput.value = "";
+    document.removeEventListener("click", handleOutsideWorkoutForm);
+  }
 }
 
 function renderWorkoutScreen(workoutId) {
@@ -335,6 +352,7 @@ function renderWorkoutScreen(workoutId) {
   });
 
   showExerciseFormButton.addEventListener("click", () => {
+    document.addEventListener("click", handleOutsideExerciseForm);
     exerciseForm.classList.remove("hidden");
     exerciseNameInput.focus();
     scrollIntoViewAfterKeyboard(exerciseForm);
@@ -364,6 +382,7 @@ function renderWorkoutScreen(workoutId) {
     exerciseNameInput.value = "";
     exerciseRepsInput.value = "";
     exerciseForm.classList.add("hidden");
+    document.removeEventListener("click", handleOutsideExerciseForm);
     saveState();
     render();
   };
@@ -390,6 +409,15 @@ function renderWorkoutScreen(workoutId) {
   });
   exerciseRepsInput.addEventListener("focus", () => {
     scrollIntoViewAfterKeyboard(exerciseForm);
+  });
+  exerciseNameInput.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  exerciseRepsInput.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  confirmAddExerciseButton.addEventListener("click", (event) => {
+    event.stopPropagation();
   });
 
   if (workout.exercises.length > 0) {
@@ -497,6 +525,22 @@ function renderWorkoutScreen(workoutId) {
 
     saveWorkoutTitle();
     document.removeEventListener("click", handleOutsideTitleSave);
+  }
+
+  function handleOutsideExerciseForm(event) {
+    if (exerciseForm.classList.contains("hidden")) {
+      document.removeEventListener("click", handleOutsideExerciseForm);
+      return;
+    }
+
+    if (exerciseForm.contains(event.target) || showExerciseFormButton.contains(event.target)) {
+      return;
+    }
+
+    exerciseForm.classList.add("hidden");
+    exerciseNameInput.value = "";
+    exerciseRepsInput.value = "";
+    document.removeEventListener("click", handleOutsideExerciseForm);
   }
 }
 
