@@ -80,6 +80,10 @@ button {
   animation: screen-enter 240ms ease;
 }
 
+.screen-workout {
+  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+}
+
 
 .section-head {
   display: flex;
@@ -525,7 +529,7 @@ input:focus {
 
 .complete-message {
   position: sticky;
-  bottom: 12px;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   margin: 18px 0 0;
   display: grid;
   gap: 6px;
@@ -554,7 +558,7 @@ input:focus {
   gap: 16px;
   margin-top: 22px;
   position: sticky;
-  bottom: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   z-index: 9;
   padding: 18px 20px;
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.96), rgba(20, 184, 166, 0.9));
