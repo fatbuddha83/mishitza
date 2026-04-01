@@ -1,6 +1,6 @@
 const STORAGE_KEY = "mishitza-state";
 const DRAG_HOLD_DURATION_MS = 100;
-const DELETE_HOLD_DURATION_MS = 1200;
+const EDIT_HOLD_DURATION_MS = 1000;
 const DRAG_START_DISTANCE_PX = 10;
 
 const app = document.getElementById("app");
@@ -254,6 +254,10 @@ function renderHomeScreen() {
       }
 
       item.addEventListener("click", () => {
+        if (item.querySelector(".inline-item-editor")) {
+          return;
+        }
+
         state.currentWorkoutId = workout.id;
         saveState();
         render();
@@ -261,6 +265,10 @@ function renderHomeScreen() {
 
       item.addEventListener("keydown", (event) => {
         if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
+
+        if (item.querySelector(".inline-item-editor")) {
           return;
         }
 
@@ -275,20 +283,9 @@ function renderHomeScreen() {
         container: workoutList,
         itemSelector: ".workout-item",
         onHold: () => {
-          showConfirmDialog({
-            title: "Delete a workout?",
-            message: `This will remove "${workout.title}".`,
-            confirmLabel: "Yes",
-            onConfirm: () => {
-              state.workouts = state.workouts.filter((entry) => entry.id !== workout.id);
-
-              if (state.lastCompletedWorkoutId === workout.id) {
-                state.lastCompletedWorkoutId = null;
-              }
-
-              saveState();
-              render();
-            },
+          renderWorkoutRowEditor({
+            item,
+            workout,
           });
         },
         onReorder: (orderedIds) => {
@@ -501,12 +498,7 @@ function renderWorkoutScreen(workoutId) {
       max.className = "exercise-max";
       max.textContent = exercise.max || "";
 
-      const editButton = document.createElement("button");
-      editButton.className = "edit-title-button exercise-edit-button";
-      editButton.setAttribute("aria-label", "Edit exercise");
-      editButton.innerHTML = '<span class="edit-icon edit-icon-flipped" aria-hidden="true">✎</span>';
-
-      label.append(name, max, editButton);
+      label.append(name, max);
 
       const checkmark = document.createElement("span");
       checkmark.className = "checkmark";
@@ -523,21 +515,27 @@ function renderWorkoutScreen(workoutId) {
         </span>
       `;
 
-      item.append(checkmark, label, grip);
+      const externalLinkButton = document.createElement("button");
+      externalLinkButton.type = "button";
+      externalLinkButton.className = "exercise-link-button";
+      externalLinkButton.setAttribute("aria-label", `Search ${exercise.name} on YouTube`);
+      externalLinkButton.innerHTML = `
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+          <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3Zm5 16H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7Z"/>
+        </svg>
+      `;
 
-      editButton.addEventListener("click", (event) => {
+      item.append(checkmark, label, externalLinkButton, grip);
+
+      externalLinkButton.addEventListener("click", (event) => {
         event.stopPropagation();
-        renderExerciseEditor({
-          item,
-          exercise,
-          workout,
-          progressBar,
-          completeMessage,
-        });
+        const query = encodeURIComponent(exercise.name.trim());
+        const url = `https://www.youtube.com/results?search_query=${query}`;
+        window.open(url, "_blank", "noopener,noreferrer");
       });
 
       item.addEventListener("click", () => {
-        if (item.querySelector(".inline-exercise-editor")) {
+        if (item.querySelector(".inline-item-editor")) {
           return;
         }
 
@@ -553,7 +551,7 @@ function renderWorkoutScreen(workoutId) {
           return;
         }
 
-        if (item.querySelector(".inline-exercise-editor")) {
+        if (item.querySelector(".inline-item-editor")) {
           return;
         }
 
@@ -570,16 +568,12 @@ function renderWorkoutScreen(workoutId) {
         container: exerciseList,
         itemSelector: ".exercise-item",
         onHold: () => {
-          showConfirmDialog({
-            title: "Delete the exercise?",
-            message: `This will remove "${exercise.name}".`,
-            confirmLabel: "Yes",
-            onConfirm: () => {
-              workout.exercises = workout.exercises.filter((entry) => entry.id !== exercise.id);
-              updateCompletionState(workout);
-              saveState();
-              render();
-            },
+          renderExerciseEditor({
+            item,
+            exercise,
+            workout,
+            progressBar,
+            completeMessage,
           });
         },
         onReorder: (orderedIds) => {
@@ -653,7 +647,7 @@ function renderExerciseEditor({ item, exercise, workout, progressBar, completeMe
   item.removeAttribute("tabindex");
 
   const editor = document.createElement("div");
-  editor.className = "card workout-form exercise-form inline-exercise-editor";
+  editor.className = "card workout-form exercise-form inline-item-editor";
 
   const nameInput = document.createElement("input");
   nameInput.type = "text";
@@ -671,6 +665,11 @@ function renderExerciseEditor({ item, exercise, workout, progressBar, completeMe
   saveButton.type = "button";
   saveButton.className = "primary-button";
   saveButton.textContent = "Save";
+
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "danger-button";
+  deleteButton.textContent = "Delete";
 
   const save = () => {
     const nextName = nameInput.value.trim();
@@ -716,14 +715,109 @@ function renderExerciseEditor({ item, exercise, workout, progressBar, completeMe
     save();
   });
 
+  deleteButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    showConfirmDialog({
+      title: "Delete the exercise?",
+      message: `This will remove "${exercise.name}".`,
+      confirmLabel: "Yes",
+      onConfirm: () => {
+        workout.exercises = workout.exercises.filter((entry) => entry.id !== exercise.id);
+        updateCompletionState(workout);
+        saveState();
+        render();
+      },
+    });
+  });
+
   editor.addEventListener("click", (event) => {
     event.stopPropagation();
   });
 
-  editor.append(nameInput, maxInput, saveButton);
+  editor.append(nameInput, maxInput, saveButton, deleteButton);
   item.appendChild(editor);
   nameInput.focus();
   nameInput.select();
+}
+
+function renderWorkoutRowEditor({ item, workout }) {
+  item.innerHTML = "";
+  item.removeAttribute("role");
+  item.removeAttribute("tabindex");
+
+  const editor = document.createElement("div");
+  editor.className = "card workout-form exercise-form inline-item-editor";
+
+  const titleInput = document.createElement("input");
+  titleInput.type = "text";
+  titleInput.maxLength = 60;
+  titleInput.placeholder = "Push day";
+  titleInput.value = workout.title;
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "primary-button";
+  saveButton.textContent = "Save";
+
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "danger-button";
+  deleteButton.textContent = "Delete";
+
+  const save = () => {
+    const nextTitle = titleInput.value.trim();
+
+    if (nextTitle.length < 3) {
+      titleInput.focus();
+      return;
+    }
+
+    workout.title = nextTitle;
+    saveState();
+    render();
+  };
+
+  titleInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    save();
+  });
+
+  saveButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    save();
+  });
+
+  deleteButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    showConfirmDialog({
+      title: "Delete a workout?",
+      message: `This will remove "${workout.title}".`,
+      confirmLabel: "Yes",
+      onConfirm: () => {
+        state.workouts = state.workouts.filter((entry) => entry.id !== workout.id);
+
+        if (state.lastCompletedWorkoutId === workout.id) {
+          state.lastCompletedWorkoutId = null;
+        }
+
+        saveState();
+        render();
+      },
+    });
+  });
+
+  editor.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
+  editor.append(titleInput, saveButton, deleteButton);
+  item.appendChild(editor);
+  titleInput.focus();
+  titleInput.select();
 }
 function isWorkoutComplete(workout) {
   return workout.exercises.length > 0 && workout.exercises.every((exercise) => exercise.checked);
@@ -778,7 +872,7 @@ function resetWorkoutProgress(workoutId) {
 
 function attachHoldGesture(handle, { dragElement, container, itemSelector, onHold, onReorder }) {
   let dragTimeoutId = null;
-  let deleteTimeoutId = null;
+  let editTimeoutId = null;
   let suppressClick = false;
   let holdReady = false;
   let dragging = false;
@@ -796,9 +890,9 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
       dragTimeoutId = null;
     }
 
-    if (deleteTimeoutId) {
-      window.clearTimeout(deleteTimeoutId);
-      deleteTimeoutId = null;
+    if (editTimeoutId) {
+      window.clearTimeout(editTimeoutId);
+      editTimeoutId = null;
     }
   };
 
@@ -971,7 +1065,7 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
       dragElement.classList.add("hold-ready");
     }, DRAG_HOLD_DURATION_MS);
 
-    deleteTimeoutId = window.setTimeout(() => {
+    editTimeoutId = window.setTimeout(() => {
       if (dragging || pointerId !== event.pointerId) {
         return;
       }
@@ -982,7 +1076,7 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
       cleanupPointerListeners();
       resetVisualState();
       onHold();
-    }, DELETE_HOLD_DURATION_MS);
+    }, EDIT_HOLD_DURATION_MS);
 
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);

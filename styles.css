@@ -368,6 +368,30 @@ input:focus {
   margin-right: -6px;
 }
 
+.exercise-link-button {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: 0;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  background: transparent;
+  color: #66718a80;
+  cursor: pointer;
+  margin-right: -8px;
+}
+
+.exercise-link-button svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.exercise-link-button:hover {
+  color: var(--muted);
+}
+
 .drag-grip-dots {
   display: grid;
   grid-template-columns: repeat(2, 4px);
@@ -396,12 +420,7 @@ input:focus {
   margin-left: 1ch;
 }
 
-.exercise-edit-button {
-  margin-left: 0;
-  flex-shrink: 0;
-}
-
-.inline-exercise-editor {
+.inline-item-editor {
   width: 100%;
   padding: 0 5px 5px;
   box-shadow: none;
@@ -410,8 +429,28 @@ input:focus {
   backdrop-filter: none;
 }
 
-.inline-exercise-editor .primary-button {
+.inline-item-editor .primary-button {
   width: 100%;
+}
+
+.danger-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  width: 100%;
+  background: #d14343;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 160ms ease, opacity 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.danger-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(209, 67, 67, 0.2);
+}
+
+.danger-button:active {
+  transform: translateY(0);
 }
 
 .badge {
