@@ -28,26 +28,39 @@
           <h1>Mishitza</h1>
         </header>
 
-        <div id="workout-list" class="workout-list"></div>
+        <div id="exercise-list" class="exercise-list"></div>
 
         <div class="bottom-action">
           <div class="card workout-form hidden" id="workout-form-card">
             <label class="field">
-              <input id="workout-title-input" type="text" maxlength="60" placeholder="Push day" />
+              <input id="exercise-name-input" type="text" maxlength="80" placeholder="Exercise name" />
             </label>
 
-            <div class="actions">
-              <button class="primary-button" id="save-workout">Add</button>
+            <label class="field">
+              <input id="exercise-max-input" type="text" maxlength="30" placeholder="Max (kg, time, reps)" />
+            </label>
+
+            <div class="actions add-form-actions">
+              <button class="primary-button" id="save-exercise">Add</button>
+              <button class="danger-button" id="cancel-home-exercise">Cancel</button>
             </div>
           </div>
 
-          <button class="primary-button add-workout-button" id="show-workout-form">+ Add workout</button>
+          <button class="primary-button add-workout-button" id="show-exercise-form">+ Add exercise</button>
         </div>
 
         <div class="home-links">
           <button class="text-link" id="export-data">Export</button>
           <button class="text-link" id="import-data">Import</button>
           <input id="import-file-input" class="hidden" type="file" accept="application/json,.json" />
+        </div>
+
+        <div class="stopwatch-panel">
+          <div id="home-stopwatch" class="stopwatch-time">00:00</div>
+          <div class="stopwatch-actions">
+            <button class="primary-button" id="toggle-home-stopwatch">Start</button>
+            <button class="ghost-button" id="reset-home-stopwatch">Reset</button>
+          </div>
         </div>
       </section>
     </template>
@@ -82,6 +95,7 @@
             <input id="exercise-name-input" type="text" maxlength="80" placeholder="Exercise name" />
             <input id="exercise-max-input" type="text" maxlength="30" placeholder="Max (kg, time, reps)" />
             <button class="primary-button" id="confirm-add-exercise">Add</button>
+            <button class="danger-button" id="cancel-add-exercise">Cancel</button>
           </div>
           <button class="primary-button add-workout-button" id="show-exercise-form">+ Add exercise</button>
         </div>

@@ -8,6 +8,8 @@ const dialogRoot = document.getElementById("dialog-root");
 const homeTemplate = document.getElementById("home-screen-template");
 const workoutTemplate = document.getElementById("workout-screen-template");
 const stopwatchStore = {};
+const homeExerciseCompletionTimeouts = new Map();
+const HOME_EXERCISE_COMPLETE_DELAY_MS = 5000;
 let activeStopwatchIntervalId = null;
 let completeMessageTimeoutId = null;
 
@@ -102,6 +104,7 @@ function saveState() {
 
 function createEmptyState() {
   return {
+    exercises: [],
     workouts: [],
     currentWorkoutId: null,
     lastCompletedWorkoutId: null,
@@ -109,28 +112,44 @@ function createEmptyState() {
 }
 
 function normalizeState(parsed) {
+  const normalizeExercise = (exercise) => ({
+    id: exercise.id || crypto.randomUUID(),
+    name: exercise.name ?? "",
+    max: exercise.max ?? exercise.reps ?? "",
+    checked: Boolean(exercise.checked),
+    lastCompletedAt: exercise.lastCompletedAt ?? null,
+  });
+
+  const workouts = Array.isArray(parsed.workouts)
+    ? parsed.workouts.map((workout) => ({
+        id: workout.id || crypto.randomUUID(),
+        title: workout.title ?? "",
+        exercises: Array.isArray(workout.exercises)
+          ? workout.exercises.map(normalizeExercise)
+          : [],
+        lastCompletedAt: workout.lastCompletedAt ?? null,
+      }))
+    : [];
+
+  const workoutExercises = workouts.flatMap((workout) => workout.exercises.map((exercise) => ({
+    ...exercise,
+    checked: false,
+  })));
+
+  const exercises = Array.isArray(parsed.exercises) && parsed.exercises.length > 0
+    ? parsed.exercises.map(normalizeExercise)
+    : workoutExercises;
+
   return {
-    workouts: Array.isArray(parsed.workouts)
-      ? parsed.workouts.map((workout) => ({
-          id: workout.id || crypto.randomUUID(),
-          title: workout.title ?? "",
-          exercises: Array.isArray(workout.exercises)
-            ? workout.exercises.map((exercise) => ({
-                id: exercise.id || crypto.randomUUID(),
-                name: exercise.name ?? "",
-                max: exercise.max ?? exercise.reps ?? "",
-                checked: Boolean(exercise.checked),
-              }))
-            : [],
-          lastCompletedAt: workout.lastCompletedAt ?? null,
-        }))
-      : [],
+    exercises,
+    workouts,
     currentWorkoutId: parsed.currentWorkoutId ?? null,
     lastCompletedWorkoutId: parsed.lastCompletedWorkoutId ?? null,
   };
 }
 
 function replaceState(nextState) {
+  state.exercises = nextState.exercises;
   state.workouts = nextState.workouts;
   state.currentWorkoutId = nextState.currentWorkoutId;
   state.lastCompletedWorkoutId = nextState.lastCompletedWorkoutId;
@@ -138,6 +157,7 @@ function replaceState(nextState) {
 
 function exportStateToJson() {
   const backup = {
+    exercises: state.exercises,
     workouts: state.workouts,
     lastCompletedWorkoutId: state.lastCompletedWorkoutId,
     exportedAt: new Date().toISOString(),
@@ -170,56 +190,92 @@ function render() {
 function renderHomeScreen() {
   const fragment = homeTemplate.content.cloneNode(true);
   const formCard = fragment.getElementById("workout-form-card");
-  const showFormButton = fragment.getElementById("show-workout-form");
-  const saveWorkoutButton = fragment.getElementById("save-workout");
-  const workoutTitleInput = fragment.getElementById("workout-title-input");
-  const workoutList = fragment.getElementById("workout-list");
+  const showFormButton = fragment.getElementById("show-exercise-form");
+  const saveExerciseButton = fragment.getElementById("save-exercise");
+  const cancelExerciseButton = fragment.getElementById("cancel-home-exercise");
+  const exerciseNameInput = fragment.getElementById("exercise-name-input");
+  const exerciseMaxInput = fragment.getElementById("exercise-max-input");
+  const exerciseList = fragment.getElementById("exercise-list");
+  const homeStopwatchTime = fragment.getElementById("home-stopwatch");
+  const toggleHomeStopwatchButton = fragment.getElementById("toggle-home-stopwatch");
+  const resetHomeStopwatchButton = fragment.getElementById("reset-home-stopwatch");
   const exportButton = fragment.getElementById("export-data");
   const importButton = fragment.getElementById("import-data");
   const importFileInput = fragment.getElementById("import-file-input");
 
+  bindStopwatch("home", homeStopwatchTime, toggleHomeStopwatchButton, resetHomeStopwatchButton);
+
   showFormButton.addEventListener("click", () => {
-    document.addEventListener("click", handleOutsideWorkoutForm);
+    document.addEventListener("click", handleOutsideExerciseForm);
     formCard.classList.remove("hidden");
-    workoutTitleInput.focus();
+    exerciseNameInput.focus();
     scrollIntoViewAfterKeyboard(formCard);
   });
 
-  const submitWorkout = () => {
-    const title = workoutTitleInput.value.trim();
+  const submitExercise = () => {
+    const name = exerciseNameInput.value.trim();
+    const max = exerciseMaxInput.value.trim();
 
-    if (!title) {
-      workoutTitleInput.focus();
+    if (!name) {
+      exerciseNameInput.focus();
       return;
     }
 
-    state.workouts.push({
+    if (!max) {
+      exerciseMaxInput.focus();
+      return;
+    }
+
+    state.exercises.push({
       id: crypto.randomUUID(),
-      title,
-      exercises: [],
+      name,
+      max,
+      checked: false,
+      lastCompletedAt: null,
     });
 
-    document.removeEventListener("click", handleOutsideWorkoutForm);
+    closeExerciseForm();
     saveState();
     render();
   };
 
-  saveWorkoutButton.addEventListener("click", submitWorkout);
-  workoutTitleInput.addEventListener("keydown", (event) => {
+  saveExerciseButton.addEventListener("click", submitExercise);
+  cancelExerciseButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    closeExerciseForm();
+  });
+  exerciseNameInput.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") {
       return;
     }
 
     event.preventDefault();
-    submitWorkout();
+    exerciseMaxInput.focus();
   });
-  workoutTitleInput.addEventListener("focus", () => {
+  exerciseMaxInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    submitExercise();
+  });
+  exerciseNameInput.addEventListener("focus", () => {
     scrollIntoViewAfterKeyboard(formCard);
   });
-  workoutTitleInput.addEventListener("click", (event) => {
+  exerciseMaxInput.addEventListener("focus", () => {
+    scrollIntoViewAfterKeyboard(formCard);
+  });
+  exerciseNameInput.addEventListener("click", (event) => {
     event.stopPropagation();
   });
-  saveWorkoutButton.addEventListener("click", (event) => {
+  exerciseMaxInput.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  saveExerciseButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  cancelExerciseButton.addEventListener("click", (event) => {
     event.stopPropagation();
   });
   exportButton.addEventListener("click", exportStateToJson);
@@ -250,34 +306,47 @@ function renderHomeScreen() {
     }
   });
 
-  if (state.workouts.length === 0) {
-    workoutList.innerHTML = '<div class="empty-state">No workouts yet. Add one to get started.</div>';
+  if (state.exercises.length === 0) {
+    exerciseList.innerHTML = '<div class="empty-state">No exercises yet. Add one to get started.</div>';
   } else {
-    state.workouts.forEach((workout) => {
+    state.exercises.forEach((exercise) => {
       const item = document.createElement("div");
-      item.className = "workout-item";
-      item.dataset.workoutId = workout.id;
+      item.className = `exercise-item${homeExerciseCompletionTimeouts.has(exercise.id) ? " pending-completion" : ""}`;
+      item.dataset.exerciseId = exercise.id;
       item.setAttribute("role", "button");
       item.setAttribute("tabindex", "0");
 
-      const meta = document.createElement("div");
-      meta.className = "workout-meta";
+      const label = document.createElement("div");
+      label.className = "exercise-label home-exercise-label";
+
+      const primary = document.createElement("div");
+      primary.className = "home-exercise-primary";
 
       const name = document.createElement("span");
-      name.className = "workout-name";
-      name.textContent = workout.title;
+      name.className = "exercise-name";
+      name.textContent = exercise.name;
 
-      const count = document.createElement("span");
-      count.className = "workout-count";
-      count.textContent = `${workout.exercises.length} exercise${workout.exercises.length === 1 ? "" : "s"}`;
+      const max = document.createElement("span");
+      max.className = "exercise-max";
+      max.textContent = exercise.max || "";
 
-      meta.append(name, count);
+      primary.append(name, max);
 
-      item.appendChild(meta);
+      const history = document.createElement("span");
+      history.className = `exercise-history${exercise.lastCompletedAt ? "" : " exercise-history-new"}`;
+      history.textContent = exercise.lastCompletedAt ? formatCompletionDate(exercise.lastCompletedAt) : "NEW";
+
+      label.append(primary, history);
+
+      const checkmark = document.createElement("span");
+      checkmark.className = "checkmark";
+      checkmark.textContent = homeExerciseCompletionTimeouts.has(exercise.id) ? "✓" : "";
+
+      const externalLinkButton = createExerciseLinkButton(exercise.name);
 
       const grip = document.createElement("span");
       grip.className = "drag-grip";
-      grip.setAttribute("aria-label", "Reorder workout");
+      grip.setAttribute("aria-label", "Reorder exercise");
       grip.innerHTML = `
         <span class="drag-grip-dots" aria-hidden="true">
           <span></span><span></span>
@@ -285,30 +354,15 @@ function renderHomeScreen() {
           <span></span><span></span>
         </span>
       `;
-      item.appendChild(grip);
 
-      if (state.lastCompletedWorkoutId === workout.id) {
-        const badgeWrap = document.createElement("div");
-        badgeWrap.className = "badge-stack";
-
-        const badge = document.createElement("span");
-        badge.className = "badge badge-complete";
-        badge.textContent = "Latest";
-
-        const date = document.createElement("span");
-        date.className = "completion-date";
-        date.textContent = formatCompletionDate(workout.lastCompletedAt);
-
-        badgeWrap.append(badge, date);
-        item.insertBefore(badgeWrap, grip);
-      }
+      item.append(checkmark, label, externalLinkButton, grip);
 
       item.addEventListener("click", () => {
         if (item.querySelector(".inline-item-editor")) {
           return;
         }
 
-        openWorkout(workout.id);
+        toggleHomeExerciseCompletion(exercise.id);
       });
 
       item.addEventListener("keydown", (event) => {
@@ -321,35 +375,42 @@ function renderHomeScreen() {
         }
 
         event.preventDefault();
-        openWorkout(workout.id);
+        toggleHomeExerciseCompletion(exercise.id);
       });
 
       attachHoldGesture(grip, {
         dragElement: item,
-        container: workoutList,
-        itemSelector: ".workout-item",
+        container: exerciseList,
+        itemSelector: ".exercise-item",
         onHold: () => {
-          renderWorkoutRowEditor({
+          renderHomeExerciseEditor({
             item,
-            workout,
+            exercise,
           });
         },
         onReorder: (orderedIds) => {
-          state.workouts = reorderCollectionByIds(state.workouts, orderedIds);
+          state.exercises = reorderCollectionByIds(state.exercises, orderedIds);
           saveState();
           render();
         },
       });
 
-      workoutList.appendChild(item);
+      exerciseList.appendChild(item);
     });
   }
 
   app.appendChild(fragment);
 
-  function handleOutsideWorkoutForm(event) {
+  function closeExerciseForm() {
+    formCard.classList.add("hidden");
+    exerciseNameInput.value = "";
+    exerciseMaxInput.value = "";
+    document.removeEventListener("click", handleOutsideExerciseForm);
+  }
+
+  function handleOutsideExerciseForm(event) {
     if (formCard.classList.contains("hidden")) {
-      document.removeEventListener("click", handleOutsideWorkoutForm);
+      document.removeEventListener("click", handleOutsideExerciseForm);
       return;
     }
 
@@ -357,9 +418,7 @@ function renderHomeScreen() {
       return;
     }
 
-    formCard.classList.add("hidden");
-    workoutTitleInput.value = "";
-    document.removeEventListener("click", handleOutsideWorkoutForm);
+    closeExerciseForm();
   }
 }
 
@@ -384,6 +443,7 @@ function renderWorkoutScreen(workoutId) {
   const exerciseNameInput = fragment.getElementById("exercise-name-input");
   const exerciseMaxInput = fragment.getElementById("exercise-max-input");
   const confirmAddExerciseButton = fragment.getElementById("confirm-add-exercise");
+  const cancelAddExerciseButton = fragment.getElementById("cancel-add-exercise");
   const completeMessage = fragment.getElementById("workout-complete-message");
   const progressBar = fragment.getElementById("workout-progress-bar");
   const stopwatchTime = fragment.getElementById("workout-stopwatch");
@@ -491,15 +551,16 @@ function renderWorkoutScreen(workoutId) {
       checked: false,
     });
 
-    exerciseNameInput.value = "";
-    exerciseMaxInput.value = "";
-    exerciseForm.classList.add("hidden");
-    document.removeEventListener("click", handleOutsideExerciseForm);
+    closeWorkoutExerciseForm();
     saveState();
     render();
   };
 
   confirmAddExerciseButton.addEventListener("click", submitExercise);
+  cancelAddExerciseButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    closeWorkoutExerciseForm();
+  });
   exerciseNameInput.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") {
       return;
@@ -529,6 +590,9 @@ function renderWorkoutScreen(workoutId) {
     event.stopPropagation();
   });
   confirmAddExerciseButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  cancelAddExerciseButton.addEventListener("click", (event) => {
     event.stopPropagation();
   });
 
@@ -568,24 +632,9 @@ function renderWorkoutScreen(workoutId) {
         </span>
       `;
 
-      const externalLinkButton = document.createElement("button");
-      externalLinkButton.type = "button";
-      externalLinkButton.className = "exercise-link-button";
-      externalLinkButton.setAttribute("aria-label", `Search ${exercise.name} on YouTube`);
-      externalLinkButton.innerHTML = `
-        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-          <path d="M4.75 6.5A2.25 2.25 0 0 1 7 4.25h8A2.25 2.25 0 0 1 17.25 6.5v2.05l3.14-2.52a1.35 1.35 0 0 1 2.19 1.05v9.84a1.35 1.35 0 0 1-2.19 1.05l-3.14-2.52v2.05A2.25 2.25 0 0 1 15 19.75H7a2.25 2.25 0 0 1-2.25-2.25v-11Z"/>
-        </svg>
-      `;
+      const externalLinkButton = createExerciseLinkButton(exercise.name);
 
       item.append(checkmark, label, externalLinkButton, grip);
-
-      externalLinkButton.addEventListener("click", (event) => {
-        event.stopPropagation();
-        const query = encodeURIComponent(exercise.name.trim());
-        const url = `https://www.youtube.com/results?search_query=${query}`;
-        window.open(url, "_blank", "noopener,noreferrer");
-      });
 
       item.addEventListener("click", () => {
         if (item.querySelector(".inline-item-editor")) {
@@ -660,6 +709,13 @@ function renderWorkoutScreen(workoutId) {
     document.removeEventListener("click", handleOutsideTitleSave);
   }
 
+  function closeWorkoutExerciseForm() {
+    exerciseForm.classList.add("hidden");
+    exerciseNameInput.value = "";
+    exerciseMaxInput.value = "";
+    document.removeEventListener("click", handleOutsideExerciseForm);
+  }
+
   function handleOutsideExerciseForm(event) {
     if (exerciseForm.classList.contains("hidden")) {
       document.removeEventListener("click", handleOutsideExerciseForm);
@@ -670,10 +726,7 @@ function renderWorkoutScreen(workoutId) {
       return;
     }
 
-    exerciseForm.classList.add("hidden");
-    exerciseNameInput.value = "";
-    exerciseMaxInput.value = "";
-    document.removeEventListener("click", handleOutsideExerciseForm);
+    closeWorkoutExerciseForm();
   }
 }
 
@@ -681,6 +734,72 @@ function syncExerciseItem(item, exercise, checkmark, name) {
   item.classList.toggle("checked", exercise.checked);
   checkmark.textContent = exercise.checked ? "✓" : "";
   name.setAttribute("aria-checked", exercise.checked ? "true" : "false");
+}
+
+function createExerciseLinkButton(exerciseName) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "exercise-link-button";
+  button.setAttribute("aria-label", `Search ${exerciseName} on YouTube`);
+  button.innerHTML = `
+    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+      <path d="M4.75 6.5A2.25 2.25 0 0 1 7 4.25h8A2.25 2.25 0 0 1 17.25 6.5v2.05l3.14-2.52a1.35 1.35 0 0 1 2.19 1.05v9.84a1.35 1.35 0 0 1-2.19 1.05l-3.14-2.52v2.05A2.25 2.25 0 0 1 15 19.75H7a2.25 2.25 0 0 1-2.25-2.25v-11Z"/>
+    </svg>
+  `;
+
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const query = encodeURIComponent(exerciseName.trim());
+    const url = `https://www.youtube.com/results?search_query=${query}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  });
+
+  return button;
+}
+
+function toggleHomeExerciseCompletion(exerciseId) {
+  const timeoutId = homeExerciseCompletionTimeouts.get(exerciseId);
+
+  if (timeoutId) {
+    window.clearTimeout(timeoutId);
+    homeExerciseCompletionTimeouts.delete(exerciseId);
+    render();
+    return;
+  }
+
+  homeExerciseCompletionTimeouts.set(
+    exerciseId,
+    window.setTimeout(() => {
+      homeExerciseCompletionTimeouts.delete(exerciseId);
+      const exercise = state.exercises.find((entry) => entry.id === exerciseId);
+
+      if (!exercise) {
+        render();
+        return;
+      }
+
+      exercise.lastCompletedAt = new Date().toISOString();
+      state.exercises = [
+        exercise,
+        ...state.exercises.filter((entry) => entry.id !== exerciseId),
+      ];
+      saveState();
+      render();
+    }, HOME_EXERCISE_COMPLETE_DELAY_MS)
+  );
+
+  render();
+}
+
+function clearHomeExerciseCompletion(exerciseId) {
+  const timeoutId = homeExerciseCompletionTimeouts.get(exerciseId);
+
+  if (!timeoutId) {
+    return;
+  }
+
+  window.clearTimeout(timeoutId);
+  homeExerciseCompletionTimeouts.delete(exerciseId);
 }
 
 function syncWorkoutProgress(progressBar, completeMessage, workout) {
@@ -913,6 +1032,117 @@ function renderExerciseEditor({ item, exercise, workout, progressBar, completeMe
   }
 }
 
+function renderHomeExerciseEditor({ item, exercise }) {
+  item.innerHTML = "";
+  item.removeAttribute("role");
+  item.removeAttribute("tabindex");
+
+  const editor = document.createElement("div");
+  editor.className = "card workout-form exercise-form inline-item-editor";
+
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.maxLength = 80;
+  nameInput.placeholder = "Exercise name";
+  nameInput.value = exercise.name;
+
+  const maxInput = document.createElement("input");
+  maxInput.type = "text";
+  maxInput.maxLength = 30;
+  maxInput.placeholder = "Max (kg, time, reps)";
+  maxInput.value = exercise.max || "";
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "primary-button";
+  saveButton.textContent = "Save";
+
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "danger-button";
+  deleteButton.textContent = "Delete";
+
+  const save = () => {
+    const nextName = nameInput.value.trim();
+    const nextMax = maxInput.value.trim();
+
+    if (!nextName) {
+      nameInput.focus();
+      return;
+    }
+
+    if (!nextMax) {
+      maxInput.focus();
+      return;
+    }
+
+    exercise.name = nextName;
+    exercise.max = nextMax;
+    saveState();
+    render();
+  };
+
+  nameInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    maxInput.focus();
+  });
+
+  maxInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    save();
+  });
+
+  saveButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    save();
+  });
+
+  deleteButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    showConfirmDialog({
+      title: "Delete the exercise?",
+      message: `This will remove "${exercise.name}".`,
+      confirmLabel: "Yes",
+      onConfirm: () => {
+        clearHomeExerciseCompletion(exercise.id);
+        state.exercises = state.exercises.filter((entry) => entry.id !== exercise.id);
+        saveState();
+        render();
+      },
+    });
+  });
+
+  editor.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
+  editor.append(nameInput, maxInput, saveButton, deleteButton);
+  item.appendChild(editor);
+  nameInput.focus();
+  nameInput.select();
+
+  window.setTimeout(() => {
+    document.addEventListener("click", handleOutsideHomeExerciseEditor);
+  }, 0);
+
+  function handleOutsideHomeExerciseEditor(event) {
+    if (editor.contains(event.target)) {
+      return;
+    }
+
+    document.removeEventListener("click", handleOutsideHomeExerciseEditor);
+    render();
+  }
+}
+
 function renderWorkoutRowEditor({ item, workout }) {
   item.innerHTML = "";
   item.removeAttribute("role");
@@ -1036,10 +1266,21 @@ function formatCompletionDate(value) {
     return "";
   }
 
-  const day = String(date.getDate());
-  const month = String(date.getMonth() + 1);
-  const year = String(date.getFullYear());
-  return `${day}.${month}.${year}`;
+  const completedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const today = new Date();
+  const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diffMs = todayDay.getTime() - completedDay.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffDays <= 0) {
+    return "Today";
+  }
+
+  if (diffDays === 1) {
+    return "Yesterday";
+  }
+
+  return `${diffDays} days ago`;
 }
 
 function resetAllWorkoutProgress() {

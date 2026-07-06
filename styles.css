@@ -202,6 +202,10 @@ button {
   gap: 10px;
 }
 
+.workout-form .field + .field {
+  margin-top: 16px;
+}
+
 .field span {
   color: var(--muted);
   font-size: 0.98rem;
@@ -248,6 +252,7 @@ input:focus {
 
 .workout-form .actions {
   justify-content: center;
+  width: 100%;
 }
 
 .workout-form .actions .primary-button {
@@ -358,6 +363,19 @@ input:focus {
   flex: 1;
 }
 
+.home-exercise-label {
+  display: grid;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.home-exercise-primary {
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  min-width: 0;
+}
+
 .drag-grip {
   display: inline-grid;
   place-items: center;
@@ -429,6 +447,18 @@ input:focus {
   flex-shrink: 0;
 }
 
+.exercise-history {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.exercise-history-new {
+  color: var(--success);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .inline-item-editor {
   width: 100%;
   padding: 0 5px 5px;
@@ -494,7 +524,8 @@ input:focus {
   font-size: 0.95rem;
 }
 
-.exercise-item.checked {
+.exercise-item.checked,
+.exercise-item.pending-completion {
   border-color: rgba(15, 159, 110, 0.26);
   background: rgba(238, 252, 247, 0.98);
 }
@@ -519,7 +550,8 @@ input:focus {
   transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
 }
 
-.exercise-item.checked .checkmark {
+.exercise-item.checked .checkmark,
+.exercise-item.pending-completion .checkmark {
   border-color: var(--success);
   background: var(--success);
   color: white;
@@ -528,7 +560,7 @@ input:focus {
 
 .exercise-form {
   display: grid;
-  gap: 10px;
+  gap: 16px;
   margin-top: 14px;
 }
 
@@ -750,8 +782,30 @@ input:focus {
   width: 100%;
 }
 
-.exercise-form .primary-button {
+.exercise-form .primary-button,
+.exercise-form .danger-button,
+.add-form-actions .primary-button,
+.add-form-actions .danger-button {
+  display: block;
+  width: 100% !important;
+  min-width: 100%;
+}
+
+.add-form-actions {
+  display: flex !important;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
   width: 100%;
+}
+
+.add-form-actions button,
+.exercise-form button {
+  display: block;
+  width: 100% !important;
+  min-width: 100%;
+  justify-self: stretch;
+  align-self: stretch;
 }
 
 .dialog-actions {
