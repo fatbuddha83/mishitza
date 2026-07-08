@@ -64,7 +64,7 @@ button {
 }
 
 .screen-home {
-  padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(116px + env(safe-area-inset-bottom, 0px));
 }
 
 .screen-home .hero {
@@ -750,19 +750,23 @@ input:focus {
 }
 
 .bottom-nav {
-  position: sticky;
-  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 12;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin-top: 24px;
-  padding: 10px;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.84);
+  width: 100%;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+  border-radius: 22px 22px 0 0;
+  background: rgba(255, 255, 255, 0.96);
   border: 1px solid rgba(102, 113, 138, 0.14);
+  border-bottom: 0;
   backdrop-filter: blur(16px);
-  box-shadow: var(--shadow);
+  box-shadow: 0 -16px 36px rgba(35, 54, 101, 0.14);
 }
 
 .nav-tab {
@@ -906,7 +910,7 @@ input:focus {
 
   .bottom-nav {
     gap: 8px;
-    padding: 8px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
   }
 
   .nav-tab {
