@@ -247,6 +247,7 @@ function renderHomeScreen() {
   const toggleHomeStopwatchButton = fragment.getElementById("toggle-home-stopwatch");
   const resetHomeStopwatchButton = fragment.getElementById("reset-home-stopwatch");
   const navButtons = [...fragment.querySelectorAll("[data-home-tab]")];
+  const exerciseTabButtons = navButtons.filter((button) => HOME_EXERCISE_TABS.includes(button.dataset.homeTab));
   const homeLinks = fragment.getElementById("home-links");
   const exportButton = fragment.getElementById("export-data");
   const importButton = fragment.getElementById("import-data");
@@ -465,6 +466,10 @@ function renderHomeScreen() {
           dragElement: item,
           container: exerciseList,
           itemSelector: ".exercise-item",
+          dropTargets: exerciseTabButtons.map((button) => ({
+            element: button,
+            value: button.dataset.homeTab,
+          })),
           onHold: () => {
             renderHomeExerciseEditor({
               item,
@@ -475,6 +480,19 @@ function renderHomeScreen() {
             reorderExercisesWithinCategory(activeHomeTab, orderedIds);
             saveState();
             render();
+          },
+          onExternalDrop: (targetCategory) => {
+            if (!HOME_EXERCISE_TABS.includes(targetCategory) || targetCategory === exercise.category) {
+              return false;
+            }
+
+            exercise.category = targetCategory;
+            clearHomeExerciseCompletion(exercise.id);
+            moveExerciseToTopOfCategory(exercise.id);
+            activeHomeTab = targetCategory;
+            saveState();
+            render();
+            return true;
           },
         });
 
@@ -1372,7 +1390,15 @@ function resetAllWorkoutProgress() {
   });
 }
 
-function attachHoldGesture(handle, { dragElement, container, itemSelector, onHold, onReorder }) {
+function attachHoldGesture(handle, {
+  dragElement,
+  container,
+  itemSelector,
+  onHold,
+  onReorder,
+  dropTargets = [],
+  onExternalDrop,
+}) {
   let dragTimeoutId = null;
   let editTimeoutId = null;
   let suppressClick = false;
@@ -1385,6 +1411,7 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
   let pointerOffsetX = 0;
   let placeholder = null;
   let dragRect = null;
+  let activeDropTarget = null;
 
   const clearTimers = () => {
     if (dragTimeoutId) {
@@ -1404,8 +1431,46 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
     window.removeEventListener("pointercancel", onPointerCancel);
   };
 
+  const setActiveDropTarget = (nextDropTarget) => {
+    if (activeDropTarget?.element === nextDropTarget?.element) {
+      return;
+    }
+
+    if (activeDropTarget?.element) {
+      activeDropTarget.element.classList.remove("nav-tab-drop-over");
+    }
+
+    activeDropTarget = nextDropTarget;
+
+    if (activeDropTarget?.element) {
+      activeDropTarget.element.classList.add("nav-tab-drop-over");
+    }
+  };
+
+  const clearDropTargetState = () => {
+    if (!activeDropTarget?.element) {
+      activeDropTarget = null;
+      return;
+    }
+
+    activeDropTarget.element.classList.remove("nav-tab-drop-over");
+    activeDropTarget = null;
+  };
+
+  const getDropTargetAtPoint = (clientX, clientY) => {
+    for (const target of dropTargets) {
+      const rect = target.element.getBoundingClientRect();
+      if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+        return target;
+      }
+    }
+
+    return null;
+  };
+
   const resetVisualState = () => {
     dragElement.classList.remove("hold-ready");
+    clearDropTargetState();
 
     if (!dragging) {
       return;
@@ -1453,6 +1518,7 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
 
     dragElement.style.left = `${event.clientX - pointerOffsetX}px`;
     dragElement.style.top = `${event.clientY - pointerOffsetY}px`;
+    setActiveDropTarget(getDropTargetAtPoint(event.clientX, event.clientY));
 
     const siblings = [...container.querySelectorAll(itemSelector)].filter((item) => item !== dragElement);
     let inserted = false;
@@ -1473,15 +1539,24 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
     }
   };
 
-  const finishDrag = () => {
+  const finishDrag = (event) => {
     if (!dragging) {
       return;
     }
 
-    container.insertBefore(dragElement, placeholder);
-    placeholder.remove();
-    placeholder = null;
+    const dropTarget = activeDropTarget ?? getDropTargetAtPoint(event.clientX, event.clientY);
+
+    if (placeholder) {
+      container.insertBefore(dragElement, placeholder);
+      placeholder.remove();
+      placeholder = null;
+    }
+
     resetVisualState();
+
+    if (dropTarget && typeof onExternalDrop === "function" && onExternalDrop(dropTarget.value)) {
+      return;
+    }
 
     const orderedIds = [...container.querySelectorAll(itemSelector)].map((item) => item.dataset.workoutId ?? item.dataset.exerciseId);
     onReorder(orderedIds);
@@ -1519,7 +1594,7 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
     cleanupPointerListeners();
 
     if (dragging) {
-      finishDrag();
+      finishDrag(event);
       dragElement.blur();
     } else if (holdReady) {
       suppressClick = true;
@@ -1561,6 +1636,7 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
     holdReady = false;
     dragging = false;
     suppressClick = false;
+    clearDropTargetState();
 
     dragTimeoutId = window.setTimeout(() => {
       holdReady = true;
