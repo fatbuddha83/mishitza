@@ -58,20 +58,24 @@ button {
 }
 
 .hero h1 {
-  margin: 6px 0 0;
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
-  line-height: 0.95;
+  margin: 4px 0 0;
+  font-size: clamp(1.75rem, 4.5vw, 3.1rem);
+  line-height: 0.98;
+}
+
+.screen-home {
+  padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px));
 }
 
 .screen-home .hero {
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
 .eyebrow {
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  font-size: 0.8rem;
+  font-size: 0.68rem;
   opacity: 0.82;
 }
 
@@ -735,6 +739,69 @@ input:focus {
   margin-top: 26px;
 }
 
+.stopwatch-screen {
+  margin-top: 22px;
+}
+
+.stopwatch-panel-static {
+  position: static;
+  bottom: auto;
+  margin-top: 0;
+}
+
+.bottom-nav {
+  position: sticky;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 12;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 24px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(102, 113, 138, 0.14);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow);
+}
+
+.nav-tab {
+  border: 0;
+  min-height: 52px;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.nav-tab:hover {
+  transform: translateY(-1px);
+  color: var(--text);
+}
+
+.nav-tab-active {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.94), rgba(13, 148, 136, 0.9));
+  color: #f8fbff;
+  box-shadow: 0 12px 24px rgba(35, 54, 101, 0.16);
+}
+
+.nav-tab-icon {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+}
+
+.nav-tab-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
 .text-link {
   border: 0;
   padding: 0;
@@ -825,8 +892,8 @@ input:focus {
   }
 
   .hero {
-    padding: 22px;
-    border-radius: 24px;
+    padding: 18px;
+    border-radius: 22px;
   }
 
   .section-head,
@@ -835,6 +902,16 @@ input:focus {
   .draft-exercise-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .bottom-nav {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .nav-tab {
+    min-height: 48px;
+    font-size: 0.82rem;
   }
 
   .workout-item,

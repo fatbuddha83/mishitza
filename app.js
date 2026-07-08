@@ -8,8 +8,11 @@ const dialogRoot = document.getElementById("dialog-root");
 const homeTemplate = document.getElementById("home-screen-template");
 const workoutTemplate = document.getElementById("workout-screen-template");
 const stopwatchStore = {};
+const HOME_EXERCISE_TABS = ["upper", "lower", "core"];
+const HOME_TABS = [...HOME_EXERCISE_TABS, "stopwatch"];
 const homeExerciseCompletionTimeouts = new Map();
 const HOME_EXERCISE_COMPLETE_DELAY_MS = 5000;
+let activeHomeTab = "upper";
 let activeStopwatchIntervalId = null;
 let completeMessageTimeoutId = null;
 
@@ -111,11 +114,51 @@ function createEmptyState() {
   };
 }
 
+function normalizeExerciseCategory(value) {
+  const category = String(value ?? "").toLowerCase();
+  return HOME_EXERCISE_TABS.includes(category) ? category : "upper";
+}
+
+function formatHomeTabTitle(tab) {
+  return String(tab ?? "upper").toUpperCase();
+}
+
+function reorderExercisesWithinCategory(category, orderedIds) {
+  const reordered = reorderCollectionByIds(
+    state.exercises.filter((exercise) => exercise.category === category),
+    orderedIds
+  );
+  let index = 0;
+
+  state.exercises = state.exercises.map((exercise) => (
+    exercise.category === category ? reordered[index++] : exercise
+  ));
+}
+
+function moveExerciseToTopOfCategory(exerciseId) {
+  const exercise = state.exercises.find((entry) => entry.id === exerciseId);
+
+  if (!exercise) {
+    return;
+  }
+
+  const reordered = [
+    exercise,
+    ...state.exercises.filter((entry) => entry.category === exercise.category && entry.id !== exerciseId),
+  ];
+  let index = 0;
+
+  state.exercises = state.exercises.map((entry) => (
+    entry.category === exercise.category ? reordered[index++] : entry
+  ));
+}
+
 function normalizeState(parsed) {
   const normalizeExercise = (exercise) => ({
     id: exercise.id || crypto.randomUUID(),
     name: exercise.name ?? "",
     max: exercise.max ?? exercise.reps ?? "",
+    category: normalizeExerciseCategory(exercise.category),
     checked: Boolean(exercise.checked),
     lastCompletedAt: exercise.lastCompletedAt ?? null,
   });
@@ -189,21 +232,57 @@ function render() {
 
 function renderHomeScreen() {
   const fragment = homeTemplate.content.cloneNode(true);
+  const subtitle = fragment.getElementById("home-screen-subtitle");
+  const title = fragment.getElementById("home-screen-title");
   const formCard = fragment.getElementById("workout-form-card");
   const showFormButton = fragment.getElementById("show-exercise-form");
+  const addAction = fragment.getElementById("home-add-action");
   const saveExerciseButton = fragment.getElementById("save-exercise");
   const cancelExerciseButton = fragment.getElementById("cancel-home-exercise");
   const exerciseNameInput = fragment.getElementById("exercise-name-input");
   const exerciseMaxInput = fragment.getElementById("exercise-max-input");
   const exerciseList = fragment.getElementById("exercise-list");
+  const homeStopwatchScreen = fragment.getElementById("home-stopwatch-screen");
   const homeStopwatchTime = fragment.getElementById("home-stopwatch");
   const toggleHomeStopwatchButton = fragment.getElementById("toggle-home-stopwatch");
   const resetHomeStopwatchButton = fragment.getElementById("reset-home-stopwatch");
+  const navButtons = [...fragment.querySelectorAll("[data-home-tab]")];
+  const homeLinks = fragment.getElementById("home-links");
   const exportButton = fragment.getElementById("export-data");
   const importButton = fragment.getElementById("import-data");
   const importFileInput = fragment.getElementById("import-file-input");
+  const isStopwatchTab = activeHomeTab === "stopwatch";
 
-  bindStopwatch("home", homeStopwatchTime, toggleHomeStopwatchButton, resetHomeStopwatchButton);
+  subtitle.textContent = "MISHITZA WORKOUT TRACKER";
+  title.textContent = formatHomeTabTitle(activeHomeTab);
+
+  navButtons.forEach((button) => {
+    const tab = button.dataset.homeTab;
+    const isActive = tab === activeHomeTab;
+    button.classList.toggle("nav-tab-active", isActive);
+    button.setAttribute("aria-current", isActive ? "page" : "false");
+    button.addEventListener("click", () => {
+      if (tab === activeHomeTab) {
+        return;
+      }
+
+      activeHomeTab = HOME_TABS.includes(tab) ? tab : "upper";
+      render();
+    });
+  });
+
+  if (isStopwatchTab) {
+    exerciseList.classList.add("hidden");
+    addAction.classList.add("hidden");
+    homeLinks.classList.add("hidden");
+    homeStopwatchScreen.classList.remove("hidden");
+    bindStopwatch("home", homeStopwatchTime, toggleHomeStopwatchButton, resetHomeStopwatchButton);
+  } else {
+    exerciseList.classList.remove("hidden");
+    addAction.classList.remove("hidden");
+    homeLinks.classList.remove("hidden");
+    homeStopwatchScreen.classList.add("hidden");
+  }
 
   showFormButton.addEventListener("click", () => {
     document.addEventListener("click", handleOutsideExerciseForm);
@@ -230,6 +309,7 @@ function renderHomeScreen() {
       id: crypto.randomUUID(),
       name,
       max,
+      category: activeHomeTab,
       checked: false,
       lastCompletedAt: null,
     });
@@ -306,97 +386,101 @@ function renderHomeScreen() {
     }
   });
 
-  if (state.exercises.length === 0) {
-    exerciseList.innerHTML = '<div class="empty-state">No exercises yet. Add one to get started.</div>';
-  } else {
-    state.exercises.forEach((exercise) => {
-      const item = document.createElement("div");
-      item.className = `exercise-item${homeExerciseCompletionTimeouts.has(exercise.id) ? " pending-completion" : ""}`;
-      item.dataset.exerciseId = exercise.id;
-      item.setAttribute("role", "button");
-      item.setAttribute("tabindex", "0");
+  if (!isStopwatchTab) {
+    const visibleExercises = state.exercises.filter((exercise) => exercise.category === activeHomeTab);
 
-      const label = document.createElement("div");
-      label.className = "exercise-label home-exercise-label";
+    if (visibleExercises.length === 0) {
+      exerciseList.innerHTML = `<div class="empty-state">No ${activeHomeTab} exercises yet. Add one to get started.</div>`;
+    } else {
+      visibleExercises.forEach((exercise) => {
+        const item = document.createElement("div");
+        item.className = `exercise-item${homeExerciseCompletionTimeouts.has(exercise.id) ? " pending-completion" : ""}`;
+        item.dataset.exerciseId = exercise.id;
+        item.setAttribute("role", "button");
+        item.setAttribute("tabindex", "0");
 
-      const primary = document.createElement("div");
-      primary.className = "home-exercise-primary";
+        const label = document.createElement("div");
+        label.className = "exercise-label home-exercise-label";
 
-      const name = document.createElement("span");
-      name.className = "exercise-name";
-      name.textContent = exercise.name;
+        const primary = document.createElement("div");
+        primary.className = "home-exercise-primary";
 
-      const max = document.createElement("span");
-      max.className = "exercise-max";
-      max.textContent = exercise.max || "";
+        const name = document.createElement("span");
+        name.className = "exercise-name";
+        name.textContent = exercise.name;
 
-      primary.append(name, max);
+        const max = document.createElement("span");
+        max.className = "exercise-max";
+        max.textContent = exercise.max || "";
 
-      const history = document.createElement("span");
-      history.className = `exercise-history${exercise.lastCompletedAt ? "" : " exercise-history-new"}`;
-      history.textContent = exercise.lastCompletedAt ? formatCompletionDate(exercise.lastCompletedAt) : "NEW";
+        primary.append(name, max);
 
-      label.append(primary, history);
+        const history = document.createElement("span");
+        history.className = `exercise-history${exercise.lastCompletedAt ? "" : " exercise-history-new"}`;
+        history.textContent = exercise.lastCompletedAt ? formatCompletionDate(exercise.lastCompletedAt) : "NEW";
 
-      const checkmark = document.createElement("span");
-      checkmark.className = "checkmark";
-      checkmark.textContent = homeExerciseCompletionTimeouts.has(exercise.id) ? "✓" : "";
+        label.append(primary, history);
 
-      const externalLinkButton = createExerciseLinkButton(exercise.name);
+        const checkmark = document.createElement("span");
+        checkmark.className = "checkmark";
+        checkmark.textContent = homeExerciseCompletionTimeouts.has(exercise.id) ? "✓" : "";
 
-      const grip = document.createElement("span");
-      grip.className = "drag-grip";
-      grip.setAttribute("aria-label", "Reorder exercise");
-      grip.innerHTML = `
-        <span class="drag-grip-dots" aria-hidden="true">
-          <span></span><span></span>
-          <span></span><span></span>
-          <span></span><span></span>
-        </span>
-      `;
+        const externalLinkButton = createExerciseLinkButton(exercise.name);
 
-      item.append(checkmark, label, externalLinkButton, grip);
+        const grip = document.createElement("span");
+        grip.className = "drag-grip";
+        grip.setAttribute("aria-label", "Reorder exercise");
+        grip.innerHTML = `
+          <span class="drag-grip-dots" aria-hidden="true">
+            <span></span><span></span>
+            <span></span><span></span>
+            <span></span><span></span>
+          </span>
+        `;
 
-      item.addEventListener("click", () => {
-        if (item.querySelector(".inline-item-editor")) {
-          return;
-        }
+        item.append(checkmark, label, externalLinkButton, grip);
 
-        toggleHomeExerciseCompletion(exercise.id);
+        item.addEventListener("click", () => {
+          if (item.querySelector(".inline-item-editor")) {
+            return;
+          }
+
+          toggleHomeExerciseCompletion(exercise.id);
+        });
+
+        item.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") {
+            return;
+          }
+
+          if (item.querySelector(".inline-item-editor")) {
+            return;
+          }
+
+          event.preventDefault();
+          toggleHomeExerciseCompletion(exercise.id);
+        });
+
+        attachHoldGesture(grip, {
+          dragElement: item,
+          container: exerciseList,
+          itemSelector: ".exercise-item",
+          onHold: () => {
+            renderHomeExerciseEditor({
+              item,
+              exercise,
+            });
+          },
+          onReorder: (orderedIds) => {
+            reorderExercisesWithinCategory(activeHomeTab, orderedIds);
+            saveState();
+            render();
+          },
+        });
+
+        exerciseList.appendChild(item);
       });
-
-      item.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter" && event.key !== " ") {
-          return;
-        }
-
-        if (item.querySelector(".inline-item-editor")) {
-          return;
-        }
-
-        event.preventDefault();
-        toggleHomeExerciseCompletion(exercise.id);
-      });
-
-      attachHoldGesture(grip, {
-        dragElement: item,
-        container: exerciseList,
-        itemSelector: ".exercise-item",
-        onHold: () => {
-          renderHomeExerciseEditor({
-            item,
-            exercise,
-          });
-        },
-        onReorder: (orderedIds) => {
-          state.exercises = reorderCollectionByIds(state.exercises, orderedIds);
-          saveState();
-          render();
-        },
-      });
-
-      exerciseList.appendChild(item);
-    });
+    }
   }
 
   app.appendChild(fragment);
@@ -779,10 +863,7 @@ function toggleHomeExerciseCompletion(exerciseId) {
       }
 
       exercise.lastCompletedAt = new Date().toISOString();
-      state.exercises = [
-        exercise,
-        ...state.exercises.filter((entry) => entry.id !== exerciseId),
-      ];
+      moveExerciseToTopOfCategory(exerciseId);
       saveState();
       render();
     }, HOME_EXERCISE_COMPLETE_DELAY_MS)
