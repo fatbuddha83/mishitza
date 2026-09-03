@@ -1,16 +1,16 @@
 :root {
-  --bg: #eef4ff;
-  --bg-accent: #d9e8ff;
-  --surface: rgba(255, 255, 255, 0.82);
-  --surface-strong: #ffffff;
-  --text: #162033;
-  --muted: #66718a;
-  --accent: #2563eb;
-  --accent-strong: #163fa8;
-  --accent-soft: #dbe8ff;
-  --success: #0f9f6e;
+  --bg: #0d0d0d;
+  --bg-accent: #171717;
+  --surface: #171717;
+  --surface-strong: #1c1c1c;
+  --text: #fff8d7;
+  --muted: #aaa28e;
+  --accent: #f4c430;
+  --accent-strong: #c89500;
+  --accent-soft: #352b08;
+  --success: #f4c430;
   --danger: #d14343;
-  --shadow: 0 24px 60px rgba(35, 54, 101, 0.14);
+  --shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
   --radius-lg: 24px;
   --radius-md: 18px;
   --radius-sm: 12px;
@@ -25,10 +25,7 @@ body {
   min-height: 100vh;
   font-family: "Avenir Next", "Segoe UI", sans-serif;
   color: var(--text);
-  background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.95), transparent 30%),
-    radial-gradient(circle at right 20%, rgba(37, 99, 235, 0.16), transparent 26%),
-    linear-gradient(160deg, var(--bg) 0%, #dfeaff 100%);
+  background: var(--bg);
 }
 
 button,
@@ -50,10 +47,8 @@ button {
 .hero {
   padding: 28px;
   border-radius: 32px;
-  background:
-    linear-gradient(135deg, rgba(37, 99, 235, 0.94), rgba(13, 148, 136, 0.9)),
-    var(--accent);
-  color: #f8fbff;
+  background: var(--accent);
+  color: #16120a;
   box-shadow: var(--shadow);
 }
 
@@ -64,7 +59,7 @@ button {
 }
 
 .screen-home {
-  padding-bottom: calc(116px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(144px + env(safe-area-inset-bottom, 0px));
 }
 
 .screen-home .hero {
@@ -174,24 +169,24 @@ button {
   height: 14px;
   padding: 3px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(102, 113, 138, 0.14);
-  box-shadow: inset 0 1px 4px rgba(22, 32, 51, 0.08);
+  background: #252525;
+  border: 1px solid #3e3e3e;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.34);
 }
 
 .progress-bar {
   width: 0%;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #2563eb, #14b8a6);
-  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.22);
+  background: var(--accent);
+  box-shadow: 0 4px 10px rgba(244, 196, 48, 0.2);
   transition: width 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .card {
   background: var(--surface);
-  border: 1px solid rgba(102, 113, 138, 0.14);
-  backdrop-filter: blur(16px);
+  border: 1px solid #3a3a3a;
+  backdrop-filter: none;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
 }
@@ -217,8 +212,8 @@ button {
 
 input {
   width: 100%;
-  border: 1px solid rgba(102, 113, 138, 0.22);
-  background: rgba(248, 251, 255, 0.95);
+  border: 1px solid #484848;
+  background: #111111;
   color: var(--text);
   border-radius: var(--radius-sm);
   padding: 14px 16px;
@@ -226,8 +221,8 @@ input {
 }
 
 input:focus {
-  border-color: rgba(37, 99, 235, 0.62);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(244, 196, 48, 0.16);
 }
 
 .draft-list,
@@ -278,12 +273,12 @@ input:focus {
 .secondary-button:hover,
 .ghost-button:hover,
 .back-button:hover {
-  box-shadow: 0 10px 22px rgba(35, 54, 101, 0.14);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
 }
 
 .primary-button {
   background: var(--accent);
-  color: #fff6f0;
+  color: #16120a;
 }
 
 .primary-button:active,
@@ -300,7 +295,7 @@ input:focus {
 
 .ghost-button,
 .back-button {
-  background: rgba(255, 255, 255, 0.72);
+  background: #282828;
   color: var(--text);
 }
 
@@ -314,7 +309,7 @@ input:focus {
   background: var(--surface-strong);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow);
-  border: 1px solid rgba(102, 113, 138, 0.12);
+  border: 1px solid #383838;
   transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
   text-align: left;
 }
@@ -330,25 +325,25 @@ input:focus {
 .workout-item:hover,
 .exercise-item:hover {
   transform: translateY(-1px);
-  box-shadow: 0 18px 36px rgba(35, 54, 101, 0.16);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.4);
 }
 
 .workout-item.hold-ready,
 .exercise-item.hold-ready {
   transform: scale(1.01);
-  box-shadow: 0 20px 40px rgba(35, 54, 101, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.48);
 }
 
 .workout-item.dragging,
 .exercise-item.dragging {
   transform: rotate(1deg);
-  box-shadow: 0 26px 52px rgba(35, 54, 101, 0.26);
+  box-shadow: 0 26px 52px rgba(0, 0, 0, 0.56);
 }
 
 .drag-placeholder {
   border-radius: var(--radius-md);
-  border: 2px dashed rgba(37, 99, 235, 0.26);
-  background: rgba(219, 232, 255, 0.35);
+  border: 2px dashed rgba(244, 196, 48, 0.46);
+  background: rgba(244, 196, 48, 0.1);
 }
 
 .workout-meta,
@@ -385,7 +380,7 @@ input:focus {
   width: 30px;
   height: 38px;
   flex-shrink: 0;
-  color: #66718a80;
+  color: #aaa28e80;
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
@@ -402,7 +397,7 @@ input:focus {
   display: inline-grid;
   place-items: center;
   background: transparent;
-  color: #66718a80;
+  color: #aaa28e80;
   cursor: pointer;
   margin-right: -8px;
 }
@@ -512,7 +507,7 @@ input:focus {
 }
 
 .badge-complete {
-  background: rgba(15, 159, 110, 0.12);
+  background: rgba(244, 196, 48, 0.14);
   color: var(--success);
 }
 
@@ -528,14 +523,19 @@ input:focus {
 
 .exercise-item.checked,
 .exercise-item.pending-completion {
-  border-color: rgba(15, 159, 110, 0.26);
-  background: rgba(238, 252, 247, 0.98);
+  border-color: rgba(244, 196, 48, 0.42);
+  background: #29230e;
+}
+
+.exercise-item.selected-for-workout {
+  border-color: rgba(244, 196, 48, 0.68);
+  background: #29230e;
 }
 
 .exercise-item.checked .exercise-name {
   text-decoration: line-through;
   text-decoration-thickness: 2px;
-  text-decoration-color: rgba(15, 159, 110, 0.8);
+  text-decoration-color: rgba(244, 196, 48, 0.82);
   opacity: 0.72;
 }
 
@@ -544,7 +544,7 @@ input:focus {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 2px solid rgba(102, 113, 138, 0.35);
+  border: 2px solid #686252;
   display: grid;
   place-items: center;
   font-size: 0.92rem;
@@ -556,7 +556,14 @@ input:focus {
 .exercise-item.pending-completion .checkmark {
   border-color: var(--success);
   background: var(--success);
-  color: white;
+  color: #16120a;
+  transform: scale(1.05);
+}
+
+.exercise-item.selected-for-workout .checkmark {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #16120a;
   transform: scale(1.05);
 }
 
@@ -573,7 +580,7 @@ input:focus {
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(22, 32, 51, 0.52);
+  background: rgba(0, 0, 0, 0.68);
   opacity: 0;
   pointer-events: none;
 }
@@ -582,7 +589,7 @@ input:focus {
   width: min(320px, calc(100vw - 40px));
   text-align: center;
   background: var(--success);
-  color: white;
+  color: #16120a;
   padding: 18px 22px;
   border-radius: 22px;
   box-shadow: var(--shadow);
@@ -624,10 +631,10 @@ input:focus {
   bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   z-index: 9;
   padding: 18px 20px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.96), rgba(20, 184, 166, 0.9));
+  background: #211c09;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow);
-  border: 1px solid rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(244, 196, 48, 0.38);
 }
 
 .stopwatch-time {
@@ -635,7 +642,7 @@ input:focus {
   font-weight: 700;
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
-  color: #f8fbff;
+  color: var(--accent);
 }
 
 .stopwatch-actions {
@@ -645,14 +652,14 @@ input:focus {
 }
 
 .stopwatch-actions .primary-button {
-  background: #f8fbff;
-  color: var(--accent-strong);
+  background: var(--accent);
+  color: #16120a;
 }
 
 .stopwatch-actions .ghost-button {
-  background: rgba(255, 255, 255, 0.18);
-  color: #f8fbff;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: #302a12;
+  color: var(--text);
+  border: 1px solid rgba(244, 196, 48, 0.35);
 }
 
 @keyframes complete-pop {
@@ -688,15 +695,15 @@ input:focus {
   padding: 22px;
   text-align: center;
   color: var(--muted);
-  background: rgba(255, 255, 255, 0.58);
+  background: #171717;
   border-radius: var(--radius-lg);
-  border: 1px dashed rgba(102, 113, 138, 0.24);
+  border: 1px dashed #605a49;
 }
 
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(22, 32, 51, 0.38);
+  background: rgba(0, 0, 0, 0.7);
   display: grid;
   place-items: center;
   padding: 20px;
@@ -737,6 +744,98 @@ input:focus {
   margin-top: 26px;
 }
 
+.selected-exercises-action,
+.my-workout-action {
+  position: fixed;
+  left: 50%;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  z-index: 18;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transform: translateX(-50%);
+}
+
+.selected-exercises-action .primary-button,
+.my-workout-action .primary-button {
+  min-width: min(280px, calc(100vw - 100px));
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.44);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.selection-clear-button {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: #2a2a2a;
+  color: var(--muted);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.my-workout-screen {
+  margin-top: 2px;
+}
+
+.my-workout-item {
+  cursor: default;
+}
+
+.stopwatch-float {
+  position: fixed;
+  right: max(16px, calc(12.5% - 28px));
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  z-index: 20;
+}
+
+.stopwatch-float-raised {
+  bottom: calc(136px + env(safe-area-inset-bottom, 0px));
+}
+
+.stopwatch-fab {
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: #16120a;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.48);
+  cursor: pointer;
+}
+
+.stopwatch-fab svg {
+  width: 25px;
+  height: 25px;
+  fill: currentColor;
+}
+
+.stopwatch-popover {
+  position: absolute;
+  right: 0;
+  bottom: 68px;
+  width: min(310px, calc(100vw - 32px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  background: #211c09;
+  border: 1px solid rgba(244, 196, 48, 0.38);
+  box-shadow: var(--shadow);
+}
+
 .stopwatch-screen {
   margin-top: 22px;
 }
@@ -760,16 +859,16 @@ input:focus {
   width: 100%;
   padding: 0 0 env(safe-area-inset-bottom, 0px);
   border-radius: 0;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(102, 113, 138, 0.14);
+  background: #171717;
+  border: 1px solid #3a3a3a;
   border-bottom: 0;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 -16px 36px rgba(35, 54, 101, 0.14);
+  backdrop-filter: none;
+  box-shadow: 0 -16px 36px rgba(0, 0, 0, 0.36);
 }
 
 .nav-tab {
   border: 0;
-  border-right: 1px solid rgba(102, 113, 138, 0.12);
+  border-right: 1px solid #383838;
   min-height: 60px;
   border-radius: 0;
   background: transparent;
@@ -787,15 +886,15 @@ input:focus {
 }
 
 .nav-tab-active {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.94), rgba(13, 148, 136, 0.9));
-  color: #f8fbff;
+  background: var(--accent);
+  color: #16120a;
   box-shadow: none;
 }
 
 .nav-tab-drop-over {
-  background: rgba(37, 99, 235, 0.16);
+  background: rgba(244, 196, 48, 0.18);
   color: var(--accent-strong);
-  box-shadow: inset 0 0 0 2px rgba(37, 99, 235, 0.22);
+  box-shadow: inset 0 0 0 2px rgba(244, 196, 48, 0.48);
 }
 
 .nav-tab:last-child {
@@ -832,8 +931,8 @@ input:focus {
 .add-workout-button {
   width: 100%;
   min-height: 68px;
-  border: 2px dashed rgba(102, 113, 138, 0.32);
-  background: rgba(255, 255, 255, 0.44);
+  border: 2px dashed #605a49;
+  background: #171717;
   color: var(--muted);
   box-shadow: none;
   border-radius: var(--radius-md);
@@ -844,8 +943,8 @@ input:focus {
 }
 
 .add-workout-button:hover {
-  background: rgba(255, 255, 255, 0.66);
-  border-color: rgba(37, 99, 235, 0.28);
+  background: #242424;
+  border-color: rgba(244, 196, 48, 0.52);
   color: var(--text);
 }
 

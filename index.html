@@ -55,25 +55,38 @@
           <input id="import-file-input" class="hidden" type="file" accept="application/json,.json" />
         </div>
 
-        <section id="home-stopwatch-screen" class="stopwatch-screen hidden">
-          <div class="stopwatch-panel stopwatch-panel-static">
+        <div id="selected-exercises-action" class="selected-exercises-action hidden">
+          <button class="primary-button" id="add-selected-to-workout">Add to workout</button>
+          <button class="selection-clear-button" id="clear-selected-exercises" type="button" aria-label="Deselect all exercises">×</button>
+        </div>
+
+        <section id="my-workout-screen" class="my-workout-screen hidden" aria-label="My workout">
+          <div id="my-workout-list" class="exercise-list"></div>
+          <div class="my-workout-action">
+            <button class="primary-button" id="complete-my-workout">Workout complete</button>
+          </div>
+        </section>
+
+        <div class="stopwatch-float">
+          <section id="home-stopwatch-popover" class="stopwatch-popover hidden" aria-label="Stopwatch">
             <div id="home-stopwatch" class="stopwatch-time">00:00</div>
             <div class="stopwatch-actions">
               <button class="primary-button" id="toggle-home-stopwatch">Start</button>
               <button class="ghost-button" id="reset-home-stopwatch">Reset</button>
             </div>
-          </div>
-        </section>
+          </section>
+          <button class="stopwatch-fab" id="toggle-home-stopwatch-popover" type="button" aria-label="Open stopwatch" aria-expanded="false">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Zm-.75 2.5h1.5V12l2.25 2.25-1.06 1.06L11.25 12.6v-2.1Z"/>
+            </svg>
+          </button>
+        </div>
 
         <nav class="bottom-nav" aria-label="Home sections">
           <button class="nav-tab" type="button" data-home-tab="upper">Upper</button>
           <button class="nav-tab" type="button" data-home-tab="lower">Lower</button>
           <button class="nav-tab" type="button" data-home-tab="core">Core</button>
-          <button class="nav-tab nav-tab-icon" type="button" data-home-tab="stopwatch" aria-label="Stopwatch">
-            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-              <path d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Zm-.75 2.5h1.5V12l2.25 2.25-1.06 1.06L11.25 12.6v-2.1Z"/>
-            </svg>
-          </button>
+          <button class="nav-tab" type="button" data-home-tab="workout">Workout</button>
         </nav>
       </section>
     </template>

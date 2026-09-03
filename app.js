@@ -9,9 +9,7 @@ const homeTemplate = document.getElementById("home-screen-template");
 const workoutTemplate = document.getElementById("workout-screen-template");
 const stopwatchStore = {};
 const HOME_EXERCISE_TABS = ["upper", "lower", "core"];
-const HOME_TABS = [...HOME_EXERCISE_TABS, "stopwatch"];
-const homeExerciseCompletionTimeouts = new Map();
-const HOME_EXERCISE_COMPLETE_DELAY_MS = 5000;
+const HOME_TABS = [...HOME_EXERCISE_TABS, "workout"];
 let activeHomeTab = "upper";
 let activeStopwatchIntervalId = null;
 let completeMessageTimeoutId = null;
@@ -109,6 +107,8 @@ function createEmptyState() {
   return {
     exercises: [],
     workouts: [],
+    selectedExerciseIds: [],
+    myWorkoutExerciseIds: [],
     currentWorkoutId: null,
     lastCompletedWorkoutId: null,
   };
@@ -183,9 +183,16 @@ function normalizeState(parsed) {
     ? parsed.exercises.map(normalizeExercise)
     : workoutExercises;
 
+  const exerciseIds = new Set(exercises.map((exercise) => exercise.id));
+  const normalizeExerciseIds = (values) => [...new Set(
+    (Array.isArray(values) ? values : []).filter((id) => exerciseIds.has(id))
+  )];
+
   return {
     exercises,
     workouts,
+    selectedExerciseIds: normalizeExerciseIds(parsed.selectedExerciseIds),
+    myWorkoutExerciseIds: normalizeExerciseIds(parsed.myWorkoutExerciseIds),
     currentWorkoutId: parsed.currentWorkoutId ?? null,
     lastCompletedWorkoutId: parsed.lastCompletedWorkoutId ?? null,
   };
@@ -194,6 +201,8 @@ function normalizeState(parsed) {
 function replaceState(nextState) {
   state.exercises = nextState.exercises;
   state.workouts = nextState.workouts;
+  state.selectedExerciseIds = nextState.selectedExerciseIds;
+  state.myWorkoutExerciseIds = nextState.myWorkoutExerciseIds;
   state.currentWorkoutId = nextState.currentWorkoutId;
   state.lastCompletedWorkoutId = nextState.lastCompletedWorkoutId;
 }
@@ -202,6 +211,8 @@ function exportStateToJson() {
   const backup = {
     exercises: state.exercises,
     workouts: state.workouts,
+    selectedExerciseIds: state.selectedExerciseIds,
+    myWorkoutExerciseIds: state.myWorkoutExerciseIds,
     lastCompletedWorkoutId: state.lastCompletedWorkoutId,
     exportedAt: new Date().toISOString(),
   };
@@ -242,20 +253,28 @@ function renderHomeScreen() {
   const exerciseNameInput = fragment.getElementById("exercise-name-input");
   const exerciseMaxInput = fragment.getElementById("exercise-max-input");
   const exerciseList = fragment.getElementById("exercise-list");
-  const homeStopwatchScreen = fragment.getElementById("home-stopwatch-screen");
+  const selectedExercisesAction = fragment.getElementById("selected-exercises-action");
+  const addSelectedToWorkoutButton = fragment.getElementById("add-selected-to-workout");
+  const clearSelectedExercisesButton = fragment.getElementById("clear-selected-exercises");
+  const myWorkoutScreen = fragment.getElementById("my-workout-screen");
+  const myWorkoutList = fragment.getElementById("my-workout-list");
+  const completeMyWorkoutButton = fragment.getElementById("complete-my-workout");
+  const homeStopwatchPopover = fragment.getElementById("home-stopwatch-popover");
   const homeStopwatchTime = fragment.getElementById("home-stopwatch");
   const toggleHomeStopwatchButton = fragment.getElementById("toggle-home-stopwatch");
   const resetHomeStopwatchButton = fragment.getElementById("reset-home-stopwatch");
+  const stopwatchPopoverButton = fragment.getElementById("toggle-home-stopwatch-popover");
+  const stopwatchFloat = fragment.querySelector(".stopwatch-float");
   const navButtons = [...fragment.querySelectorAll("[data-home-tab]")];
   const exerciseTabButtons = navButtons.filter((button) => HOME_EXERCISE_TABS.includes(button.dataset.homeTab));
   const homeLinks = fragment.getElementById("home-links");
   const exportButton = fragment.getElementById("export-data");
   const importButton = fragment.getElementById("import-data");
   const importFileInput = fragment.getElementById("import-file-input");
-  const isStopwatchTab = activeHomeTab === "stopwatch";
+  const isMyWorkoutTab = activeHomeTab === "workout";
 
   subtitle.textContent = "MISHITZA WORKOUT TRACKER";
-  title.textContent = formatHomeTabTitle(activeHomeTab);
+  title.textContent = isMyWorkoutTab ? "MY WORKOUT" : formatHomeTabTitle(activeHomeTab);
 
   navButtons.forEach((button) => {
     const tab = button.dataset.homeTab;
@@ -272,17 +291,42 @@ function renderHomeScreen() {
     });
   });
 
-  if (isStopwatchTab) {
+  bindStopwatch("home", homeStopwatchTime, toggleHomeStopwatchButton, resetHomeStopwatchButton);
+  stopwatchFloat.classList.toggle(
+    "stopwatch-float-raised",
+    isMyWorkoutTab || state.selectedExerciseIds.length > 0
+  );
+  stopwatchPopoverButton.addEventListener("click", () => {
+    const isOpen = !homeStopwatchPopover.classList.contains("hidden");
+    homeStopwatchPopover.classList.toggle("hidden", isOpen);
+    stopwatchPopoverButton.setAttribute("aria-expanded", String(!isOpen));
+  });
+
+  if (isMyWorkoutTab) {
     exerciseList.classList.add("hidden");
     addAction.classList.add("hidden");
     homeLinks.classList.add("hidden");
-    homeStopwatchScreen.classList.remove("hidden");
-    bindStopwatch("home", homeStopwatchTime, toggleHomeStopwatchButton, resetHomeStopwatchButton);
+    selectedExercisesAction.classList.add("hidden");
+    myWorkoutScreen.classList.remove("hidden");
+    renderMyWorkoutList(myWorkoutList);
+
+    const myWorkoutExercises = getMyWorkoutExercises();
+    completeMyWorkoutButton.classList.toggle("hidden", myWorkoutExercises.length === 0);
+    completeMyWorkoutButton.addEventListener("click", () => {
+      showConfirmDialog({
+        title: "Are you sure?",
+        message: "This will complete your workout.",
+        confirmLabel: "Yes",
+        cancelLabel: "No",
+        onConfirm: completeMyWorkout,
+      });
+    });
   } else {
     exerciseList.classList.remove("hidden");
     addAction.classList.remove("hidden");
     homeLinks.classList.remove("hidden");
-    homeStopwatchScreen.classList.add("hidden");
+    myWorkoutScreen.classList.add("hidden");
+    selectedExercisesAction.classList.toggle("hidden", state.selectedExerciseIds.length === 0);
   }
 
   showFormButton.addEventListener("click", () => {
@@ -387,7 +431,16 @@ function renderHomeScreen() {
     }
   });
 
-  if (!isStopwatchTab) {
+  addSelectedToWorkoutButton.addEventListener("click", () => {
+    addSelectedExercisesToMyWorkout();
+  });
+  clearSelectedExercisesButton.addEventListener("click", () => {
+    state.selectedExerciseIds = [];
+    saveState();
+    render();
+  });
+
+  if (!isMyWorkoutTab) {
     const visibleExercises = state.exercises.filter((exercise) => exercise.category === activeHomeTab);
 
     if (visibleExercises.length === 0) {
@@ -395,7 +448,8 @@ function renderHomeScreen() {
     } else {
       visibleExercises.forEach((exercise) => {
         const item = document.createElement("div");
-        item.className = `exercise-item${homeExerciseCompletionTimeouts.has(exercise.id) ? " pending-completion" : ""}`;
+        const isSelected = state.selectedExerciseIds.includes(exercise.id);
+        item.className = `exercise-item${isSelected ? " selected-for-workout" : ""}`;
         item.dataset.exerciseId = exercise.id;
         item.setAttribute("role", "button");
         item.setAttribute("tabindex", "0");
@@ -424,7 +478,7 @@ function renderHomeScreen() {
 
         const checkmark = document.createElement("span");
         checkmark.className = "checkmark";
-        checkmark.textContent = homeExerciseCompletionTimeouts.has(exercise.id) ? "✓" : "";
+        checkmark.textContent = isSelected ? "✓" : "";
 
         const externalLinkButton = createExerciseLinkButton(exercise.name);
 
@@ -446,7 +500,7 @@ function renderHomeScreen() {
             return;
           }
 
-          toggleHomeExerciseCompletion(exercise.id);
+          toggleHomeExerciseSelection(exercise.id);
         });
 
         item.addEventListener("keydown", (event) => {
@@ -459,7 +513,7 @@ function renderHomeScreen() {
           }
 
           event.preventDefault();
-          toggleHomeExerciseCompletion(exercise.id);
+          toggleHomeExerciseSelection(exercise.id);
         });
 
         attachHoldGesture(grip, {
@@ -487,7 +541,6 @@ function renderHomeScreen() {
             }
 
             exercise.category = targetCategory;
-            clearHomeExerciseCompletion(exercise.id);
             moveExerciseToTopOfCategory(exercise.id);
             activeHomeTab = targetCategory;
             saveState();
@@ -859,46 +912,133 @@ function createExerciseLinkButton(exerciseName) {
   return button;
 }
 
-function toggleHomeExerciseCompletion(exerciseId) {
-  const timeoutId = homeExerciseCompletionTimeouts.get(exerciseId);
+function toggleHomeExerciseSelection(exerciseId) {
+  const selected = new Set(state.selectedExerciseIds);
 
-  if (timeoutId) {
-    window.clearTimeout(timeoutId);
-    homeExerciseCompletionTimeouts.delete(exerciseId);
+  if (selected.has(exerciseId)) {
+    selected.delete(exerciseId);
+  } else {
+    selected.add(exerciseId);
+  }
+
+  state.selectedExerciseIds = [...selected];
+  saveState();
+  render();
+}
+
+function addSelectedExercisesToMyWorkout() {
+  const queued = new Set(state.myWorkoutExerciseIds);
+  state.selectedExerciseIds.forEach((exerciseId) => queued.add(exerciseId));
+  state.myWorkoutExerciseIds = [...queued];
+  state.selectedExerciseIds = [];
+  activeHomeTab = "workout";
+  saveState();
+  render();
+}
+
+function getMyWorkoutExercises() {
+  const exercisesById = new Map(state.exercises.map((exercise) => [exercise.id, exercise]));
+  return state.myWorkoutExerciseIds
+    .map((exerciseId) => exercisesById.get(exerciseId))
+    .filter(Boolean);
+}
+
+function renderMyWorkoutList(list) {
+  const exercises = getMyWorkoutExercises();
+
+  if (exercises.length === 0) {
+    return;
+  }
+
+  exercises.forEach((exercise) => {
+    const item = document.createElement("div");
+    item.className = "exercise-item my-workout-item";
+    item.dataset.exerciseId = exercise.id;
+
+    const label = document.createElement("div");
+    label.className = "exercise-label home-exercise-label";
+
+    const primary = document.createElement("div");
+    primary.className = "home-exercise-primary";
+
+    const name = document.createElement("span");
+    name.className = "exercise-name";
+    name.textContent = exercise.name;
+
+    const max = document.createElement("span");
+    max.className = "exercise-max";
+    max.textContent = exercise.max || "";
+
+    const category = document.createElement("span");
+    category.className = "exercise-history";
+    category.textContent = exercise.category.toUpperCase();
+
+    const grip = document.createElement("span");
+    grip.className = "drag-grip";
+    grip.setAttribute("aria-label", "Reorder workout exercise");
+    grip.innerHTML = `
+      <span class="drag-grip-dots" aria-hidden="true">
+        <span></span><span></span>
+        <span></span><span></span>
+        <span></span><span></span>
+      </span>
+    `;
+
+    primary.append(name, max);
+    label.append(primary, category);
+    item.append(label, createExerciseLinkButton(exercise.name), grip);
+
+    attachHoldGesture(grip, {
+      dragElement: item,
+      container: list,
+      itemSelector: ".my-workout-item",
+      onHold: () => {},
+      onReorder: (orderedIds) => {
+        state.myWorkoutExerciseIds = orderedIds;
+        saveState();
+        render();
+      },
+    });
+
+    list.appendChild(item);
+  });
+}
+
+function completeMyWorkout() {
+  const completedExercises = getMyWorkoutExercises();
+
+  if (completedExercises.length === 0) {
+    state.myWorkoutExerciseIds = [];
+    saveState();
     render();
     return;
   }
 
-  homeExerciseCompletionTimeouts.set(
-    exerciseId,
-    window.setTimeout(() => {
-      homeExerciseCompletionTimeouts.delete(exerciseId);
-      const exercise = state.exercises.find((entry) => entry.id === exerciseId);
+  const completedIds = new Set(completedExercises.map((exercise) => exercise.id));
+  const completedAt = new Date().toISOString();
 
-      if (!exercise) {
-        render();
-        return;
-      }
+  state.exercises.forEach((exercise) => {
+    if (completedIds.has(exercise.id)) {
+      exercise.lastCompletedAt = completedAt;
+    }
+  });
 
-      exercise.lastCompletedAt = new Date().toISOString();
-      moveExerciseToTopOfCategory(exerciseId);
-      saveState();
-      render();
-    }, HOME_EXERCISE_COMPLETE_DELAY_MS)
-  );
+  HOME_EXERCISE_TABS.forEach((category) => {
+    const categoryExercises = state.exercises.filter((exercise) => exercise.category === category);
+    const completed = categoryExercises.filter((exercise) => completedIds.has(exercise.id));
+    const remaining = categoryExercises.filter((exercise) => !completedIds.has(exercise.id));
+    const reordered = [...completed, ...remaining];
+    let index = 0;
 
+    state.exercises = state.exercises.map((exercise) => (
+      exercise.category === category ? reordered[index++] : exercise
+    ));
+  });
+
+  state.myWorkoutExerciseIds = [];
+  state.selectedExerciseIds = [];
+  saveState();
   render();
-}
-
-function clearHomeExerciseCompletion(exerciseId) {
-  const timeoutId = homeExerciseCompletionTimeouts.get(exerciseId);
-
-  if (!timeoutId) {
-    return;
-  }
-
-  window.clearTimeout(timeoutId);
-  homeExerciseCompletionTimeouts.delete(exerciseId);
 }
 
 function syncWorkoutProgress(progressBar, completeMessage, workout) {
@@ -1211,8 +1351,9 @@ function renderHomeExerciseEditor({ item, exercise }) {
       message: `This will remove "${exercise.name}".`,
       confirmLabel: "Yes",
       onConfirm: () => {
-        clearHomeExerciseCompletion(exercise.id);
         state.exercises = state.exercises.filter((entry) => entry.id !== exercise.id);
+        state.selectedExerciseIds = state.selectedExerciseIds.filter((id) => id !== exercise.id);
+        state.myWorkoutExerciseIds = state.myWorkoutExerciseIds.filter((id) => id !== exercise.id);
         saveState();
         render();
       },
@@ -1690,7 +1831,7 @@ function scrollIntoViewAfterKeyboard(element) {
   }, 250);
 }
 
-function showConfirmDialog({ title, message, confirmLabel, onConfirm }) {
+function showConfirmDialog({ title, message, confirmLabel, cancelLabel = "Cancel", onConfirm }) {
   dialogRoot.innerHTML = "";
 
   const backdrop = document.createElement("div");
@@ -1711,7 +1852,7 @@ function showConfirmDialog({ title, message, confirmLabel, onConfirm }) {
   const cancelButton = document.createElement("button");
   cancelButton.type = "button";
   cancelButton.className = "ghost-button";
-  cancelButton.textContent = "Cancel";
+  cancelButton.textContent = cancelLabel;
 
   const confirmButton = document.createElement("button");
   confirmButton.type = "button";
