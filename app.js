@@ -109,6 +109,7 @@ function createEmptyState() {
     workouts: [],
     selectedExerciseIds: [],
     myWorkoutExerciseIds: [],
+    selectedMyWorkoutExerciseIds: [],
     currentWorkoutId: null,
     lastCompletedWorkoutId: null,
   };
@@ -187,12 +188,15 @@ function normalizeState(parsed) {
   const normalizeExerciseIds = (values) => [...new Set(
     (Array.isArray(values) ? values : []).filter((id) => exerciseIds.has(id))
   )];
+  const myWorkoutExerciseIds = normalizeExerciseIds(parsed.myWorkoutExerciseIds);
 
   return {
     exercises,
     workouts,
     selectedExerciseIds: normalizeExerciseIds(parsed.selectedExerciseIds),
-    myWorkoutExerciseIds: normalizeExerciseIds(parsed.myWorkoutExerciseIds),
+    myWorkoutExerciseIds,
+    selectedMyWorkoutExerciseIds: normalizeExerciseIds(parsed.selectedMyWorkoutExerciseIds)
+      .filter((id) => myWorkoutExerciseIds.includes(id)),
     currentWorkoutId: parsed.currentWorkoutId ?? null,
     lastCompletedWorkoutId: parsed.lastCompletedWorkoutId ?? null,
   };
@@ -203,6 +207,7 @@ function replaceState(nextState) {
   state.workouts = nextState.workouts;
   state.selectedExerciseIds = nextState.selectedExerciseIds;
   state.myWorkoutExerciseIds = nextState.myWorkoutExerciseIds;
+  state.selectedMyWorkoutExerciseIds = nextState.selectedMyWorkoutExerciseIds;
   state.currentWorkoutId = nextState.currentWorkoutId;
   state.lastCompletedWorkoutId = nextState.lastCompletedWorkoutId;
 }
@@ -213,6 +218,7 @@ function exportStateToJson() {
     workouts: state.workouts,
     selectedExerciseIds: state.selectedExerciseIds,
     myWorkoutExerciseIds: state.myWorkoutExerciseIds,
+    selectedMyWorkoutExerciseIds: state.selectedMyWorkoutExerciseIds,
     lastCompletedWorkoutId: state.lastCompletedWorkoutId,
     exportedAt: new Date().toISOString(),
   };
@@ -259,6 +265,7 @@ function renderHomeScreen() {
   const myWorkoutScreen = fragment.getElementById("my-workout-screen");
   const myWorkoutList = fragment.getElementById("my-workout-list");
   const completeMyWorkoutButton = fragment.getElementById("complete-my-workout");
+  const clearMyWorkoutSelectionButton = fragment.getElementById("clear-my-workout-selection");
   const homeStopwatchPopover = fragment.getElementById("home-stopwatch-popover");
   const homeStopwatchTime = fragment.getElementById("home-stopwatch");
   const toggleHomeStopwatchButton = fragment.getElementById("toggle-home-stopwatch");
@@ -311,8 +318,22 @@ function renderHomeScreen() {
     renderMyWorkoutList(myWorkoutList);
 
     const myWorkoutExercises = getMyWorkoutExercises();
+    const hasMyWorkoutSelection = state.selectedMyWorkoutExerciseIds.length > 0;
     completeMyWorkoutButton.classList.toggle("hidden", myWorkoutExercises.length === 0);
+    completeMyWorkoutButton.textContent = hasMyWorkoutSelection ? "Remove exercise" : "Workout complete";
+    clearMyWorkoutSelectionButton.classList.toggle("hidden", !hasMyWorkoutSelection);
     completeMyWorkoutButton.addEventListener("click", () => {
+      if (hasMyWorkoutSelection) {
+        showConfirmDialog({
+          title: "Are you sure?",
+          message: "This will remove the selected exercise from your workout.",
+          confirmLabel: "Yes",
+          cancelLabel: "No",
+          onConfirm: removeSelectedMyWorkoutExercises,
+        });
+        return;
+      }
+
       showConfirmDialog({
         title: "Are you sure?",
         message: "This will complete your workout.",
@@ -320,6 +341,11 @@ function renderHomeScreen() {
         cancelLabel: "No",
         onConfirm: completeMyWorkout,
       });
+    });
+    clearMyWorkoutSelectionButton.addEventListener("click", () => {
+      state.selectedMyWorkoutExerciseIds = [];
+      saveState();
+      render();
     });
   } else {
     exerciseList.classList.remove("hidden");
@@ -952,8 +978,11 @@ function renderMyWorkoutList(list) {
 
   exercises.forEach((exercise) => {
     const item = document.createElement("div");
-    item.className = "exercise-item my-workout-item";
+    const isSelected = state.selectedMyWorkoutExerciseIds.includes(exercise.id);
+    item.className = `exercise-item my-workout-item${isSelected ? " selected-for-workout" : ""}`;
     item.dataset.exerciseId = exercise.id;
+    item.setAttribute("role", "button");
+    item.setAttribute("tabindex", "0");
 
     const label = document.createElement("div");
     label.className = "exercise-label home-exercise-label";
@@ -986,7 +1015,24 @@ function renderMyWorkoutList(list) {
 
     primary.append(name, max);
     label.append(primary, category);
-    item.append(label, createExerciseLinkButton(exercise.name), grip);
+    const checkmark = document.createElement("span");
+    checkmark.className = "checkmark";
+    checkmark.textContent = isSelected ? "✓" : "";
+
+    item.append(checkmark, label, createExerciseLinkButton(exercise.name), grip);
+
+    item.addEventListener("click", () => {
+      toggleMyWorkoutExerciseSelection(exercise.id);
+    });
+
+    item.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+
+      event.preventDefault();
+      toggleMyWorkoutExerciseSelection(exercise.id);
+    });
 
     attachHoldGesture(grip, {
       dragElement: item,
@@ -1037,6 +1083,29 @@ function completeMyWorkout() {
 
   state.myWorkoutExerciseIds = [];
   state.selectedExerciseIds = [];
+  state.selectedMyWorkoutExerciseIds = [];
+  saveState();
+  render();
+}
+
+function toggleMyWorkoutExerciseSelection(exerciseId) {
+  const selected = new Set(state.selectedMyWorkoutExerciseIds);
+
+  if (selected.has(exerciseId)) {
+    selected.delete(exerciseId);
+  } else {
+    selected.add(exerciseId);
+  }
+
+  state.selectedMyWorkoutExerciseIds = [...selected];
+  saveState();
+  render();
+}
+
+function removeSelectedMyWorkoutExercises() {
+  const selected = new Set(state.selectedMyWorkoutExerciseIds);
+  state.myWorkoutExerciseIds = state.myWorkoutExerciseIds.filter((id) => !selected.has(id));
+  state.selectedMyWorkoutExerciseIds = [];
   saveState();
   render();
 }
@@ -1354,6 +1423,7 @@ function renderHomeExerciseEditor({ item, exercise }) {
         state.exercises = state.exercises.filter((entry) => entry.id !== exercise.id);
         state.selectedExerciseIds = state.selectedExerciseIds.filter((id) => id !== exercise.id);
         state.myWorkoutExerciseIds = state.myWorkoutExerciseIds.filter((id) => id !== exercise.id);
+        state.selectedMyWorkoutExerciseIds = state.selectedMyWorkoutExerciseIds.filter((id) => id !== exercise.id);
         saveState();
         render();
       },
