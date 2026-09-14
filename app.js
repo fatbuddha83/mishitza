@@ -249,15 +249,7 @@ function render() {
 
 function renderHomeScreen() {
   const fragment = homeTemplate.content.cloneNode(true);
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
   const title = fragment.getElementById("home-screen-title");
->>>>>>> Stashed changes
-=======
-  const subtitle = fragment.getElementById("home-screen-subtitle");
-  const title = fragment.getElementById("home-screen-title");
->>>>>>> 206b51879152cad89c8f530aaf82fb1acc3f9f8a
   const formCard = fragment.getElementById("workout-form-card");
   const showFormButton = fragment.getElementById("show-exercise-form");
   const addAction = fragment.getElementById("home-add-action");
@@ -285,16 +277,8 @@ function renderHomeScreen() {
   const exportButton = fragment.getElementById("export-data");
   const importButton = fragment.getElementById("import-data");
   const importFileInput = fragment.getElementById("import-file-input");
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
   const isMyWorkoutTab = activeHomeTab === "workout";
 
-=======
-  const isMyWorkoutTab = activeHomeTab === "workout";
-
-  subtitle.textContent = "MISHITZA WORKOUT TRACKER";
->>>>>>> 206b51879152cad89c8f530aaf82fb1acc3f9f8a
   title.textContent = isMyWorkoutTab ? "MY WORKOUT" : formatHomeTabTitle(activeHomeTab);
 
   navButtons.forEach((button) => {
@@ -368,10 +352,6 @@ function renderHomeScreen() {
     myWorkoutScreen.classList.add("hidden");
     selectedExercisesAction.classList.toggle("hidden", state.selectedExerciseIds.length === 0);
   }
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> 206b51879152cad89c8f530aaf82fb1acc3f9f8a
 
   showFormButton.addEventListener("click", () => {
     document.addEventListener("click", handleOutsideExerciseForm);
