@@ -1,4 +1,4 @@
-const CACHE_NAME = "mishitza-v11-signal";
+const CACHE_NAME = "mishitza-v12-blue-icon";
 const APP_ASSETS = [
   "./",
   "./index.html",
