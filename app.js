@@ -169,6 +169,10 @@ function render() {
 
 function renderHomeScreen() {
   const fragment = homeTemplate.content.cloneNode(true);
+<<<<<<< Updated upstream
+=======
+  const title = fragment.getElementById("home-screen-title");
+>>>>>>> Stashed changes
   const formCard = fragment.getElementById("workout-form-card");
   const showFormButton = fragment.getElementById("show-workout-form");
   const saveWorkoutButton = fragment.getElementById("save-workout");
@@ -177,6 +181,84 @@ function renderHomeScreen() {
   const exportButton = fragment.getElementById("export-data");
   const importButton = fragment.getElementById("import-data");
   const importFileInput = fragment.getElementById("import-file-input");
+<<<<<<< Updated upstream
+=======
+  const isMyWorkoutTab = activeHomeTab === "workout";
+
+  title.textContent = isMyWorkoutTab ? "MY WORKOUT" : formatHomeTabTitle(activeHomeTab);
+
+  navButtons.forEach((button) => {
+    const tab = button.dataset.homeTab;
+    const isActive = tab === activeHomeTab;
+    button.classList.toggle("nav-tab-active", isActive);
+    button.setAttribute("aria-current", isActive ? "page" : "false");
+    button.addEventListener("click", () => {
+      if (tab === activeHomeTab) {
+        return;
+      }
+
+      activeHomeTab = HOME_TABS.includes(tab) ? tab : "upper";
+      render();
+    });
+  });
+
+  bindStopwatch("home", homeStopwatchTime, toggleHomeStopwatchButton, resetHomeStopwatchButton);
+  stopwatchFloat.classList.toggle(
+    "stopwatch-float-raised",
+    isMyWorkoutTab || state.selectedExerciseIds.length > 0
+  );
+  stopwatchPopoverButton.addEventListener("click", () => {
+    const isOpen = !homeStopwatchPopover.classList.contains("hidden");
+    homeStopwatchPopover.classList.toggle("hidden", isOpen);
+    stopwatchPopoverButton.setAttribute("aria-expanded", String(!isOpen));
+  });
+
+  if (isMyWorkoutTab) {
+    exerciseList.classList.add("hidden");
+    addAction.classList.add("hidden");
+    homeLinks.classList.add("hidden");
+    selectedExercisesAction.classList.add("hidden");
+    myWorkoutScreen.classList.remove("hidden");
+    renderMyWorkoutList(myWorkoutList);
+
+    const myWorkoutExercises = getMyWorkoutExercises();
+    const hasMyWorkoutSelection = state.selectedMyWorkoutExerciseIds.length > 0;
+    completeMyWorkoutButton.classList.toggle("hidden", myWorkoutExercises.length === 0);
+    completeMyWorkoutButton.textContent = hasMyWorkoutSelection ? "Remove exercise" : "Workout complete";
+    clearMyWorkoutSelectionButton.classList.toggle("hidden", !hasMyWorkoutSelection);
+    completeMyWorkoutButton.addEventListener("click", () => {
+      if (hasMyWorkoutSelection) {
+        showConfirmDialog({
+          title: "Are you sure?",
+          message: "This will remove the selected exercise from your workout.",
+          confirmLabel: "Yes",
+          cancelLabel: "No",
+          onConfirm: removeSelectedMyWorkoutExercises,
+        });
+        return;
+      }
+
+      showConfirmDialog({
+        title: "Are you sure?",
+        message: "This will complete your workout.",
+        confirmLabel: "Yes",
+        cancelLabel: "No",
+        onConfirm: completeMyWorkout,
+      });
+    });
+    clearMyWorkoutSelectionButton.addEventListener("click", () => {
+      state.selectedMyWorkoutExerciseIds = [];
+      saveState();
+      render();
+    });
+  } else {
+    exerciseList.classList.remove("hidden");
+    addAction.classList.remove("hidden");
+    homeLinks.classList.remove("hidden");
+    myWorkoutScreen.classList.add("hidden");
+    selectedExercisesAction.classList.toggle("hidden", state.selectedExerciseIds.length === 0);
+  }
+>>>>>>> Stashed changes
 
   showFormButton.addEventListener("click", () => {
     document.addEventListener("click", handleOutsideWorkoutForm);

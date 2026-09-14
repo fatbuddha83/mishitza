@@ -1,8 +1,24 @@
+<<<<<<< Updated upstream
 const CACHE_NAME = "mishitza-v7";
+=======
+const CACHE_NAME = "mishitza-v10-signal";
+>>>>>>> Stashed changes
 const APP_ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+<<<<<<< Updated upstream
+=======
+  "./signal.css",
+  "./signal-heading.ttf",
+  "./signal-body.ttf",
+  "./signal-bold.ttf",
+  "./nav-upper.svg",
+  "./nav-core.svg",
+  "./nav-lower.svg",
+  "./exercise-play.svg",
+  "./nav-workout.svg",
+>>>>>>> Stashed changes
   "./app.js",
   "./manifest.webmanifest",
   "./icon.svg",
