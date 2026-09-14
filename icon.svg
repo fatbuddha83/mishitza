@@ -1,12 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2563eb"/>
-      <stop offset="100%" stop-color="#14b8a6"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="120" fill="url(#bg)"/>
-  <g fill="#f8fbff">
+  <rect width="512" height="512" rx="112" fill="#121212"/>
+  <rect x="28" y="28" width="456" height="456" rx="88" fill="none" stroke="#f4c430" stroke-width="16"/>
+  <g fill="#f4c430">
     <rect x="114" y="219" width="30" height="74" rx="10"/>
     <rect x="154" y="205" width="42" height="102" rx="12"/>
     <rect x="206" y="234" width="100" height="44" rx="18"/>

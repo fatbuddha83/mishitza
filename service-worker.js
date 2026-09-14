@@ -1,8 +1,15 @@
-const CACHE_NAME = "mishitza-v7";
+const CACHE_NAME = "mishitza-v9-signal";
 const APP_ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+  "./signal.css",
+  "./signal-heading.ttf",
+  "./signal-body.ttf",
+  "./signal-bold.ttf",
+  "./nav-upper.svg",
+  "./nav-core.svg",
+  "./nav-workout.svg",
   "./app.js",
   "./manifest.webmanifest",
   "./icon.svg",

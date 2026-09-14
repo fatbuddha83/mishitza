@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mishitza</title>
-    <meta name="theme-color" content="#2563eb" />
+    <meta name="theme-color" content="#1947e5" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Mishitza" />
@@ -13,6 +13,7 @@
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="signal.css" />
   </head>
   <body>
     <div class="app-shell">
@@ -24,31 +25,71 @@
     <template id="home-screen-template">
       <section class="screen screen-home">
         <header class="hero">
-          <p class="eyebrow">Workout Tracker</p>
-          <h1>Mishitza</h1>
+          <p id="home-screen-subtitle" class="eyebrow">MISHITZA WORKOUT TRACKER</p>
+          <h1 id="home-screen-title">UPPER</h1>
         </header>
 
-        <div id="workout-list" class="workout-list"></div>
+        <div id="exercise-list" class="exercise-list"></div>
 
-        <div class="bottom-action">
+        <div class="bottom-action" id="home-add-action">
           <div class="card workout-form hidden" id="workout-form-card">
             <label class="field">
-              <input id="workout-title-input" type="text" maxlength="60" placeholder="Push day" />
+              <input id="exercise-name-input" type="text" maxlength="80" placeholder="Exercise name" />
             </label>
 
-            <div class="actions">
-              <button class="primary-button" id="save-workout">Add</button>
+            <label class="field">
+              <input id="exercise-max-input" type="text" maxlength="30" placeholder="Max (kg, time, reps)" />
+            </label>
+
+            <div class="actions add-form-actions">
+              <button class="primary-button" id="save-exercise">Add</button>
+              <button class="danger-button" id="cancel-home-exercise">Cancel</button>
             </div>
           </div>
 
-          <button class="primary-button add-workout-button" id="show-workout-form">+ Add workout</button>
+          <button class="primary-button add-workout-button" id="show-exercise-form">+ Add exercise</button>
         </div>
 
-        <div class="home-links">
+        <div id="home-links" class="home-links">
           <button class="text-link" id="export-data">Export</button>
           <button class="text-link" id="import-data">Import</button>
           <input id="import-file-input" class="hidden" type="file" accept="application/json,.json" />
         </div>
+
+        <div id="selected-exercises-action" class="selected-exercises-action hidden">
+          <button class="primary-button" id="add-selected-to-workout">Add to workout</button>
+          <button class="selection-clear-button" id="clear-selected-exercises" type="button" aria-label="Deselect all exercises">×</button>
+        </div>
+
+        <section id="my-workout-screen" class="my-workout-screen hidden" aria-label="My workout">
+          <div id="my-workout-list" class="exercise-list"></div>
+          <div class="my-workout-action">
+            <button class="primary-button" id="complete-my-workout">Workout complete</button>
+            <button class="selection-clear-button hidden" id="clear-my-workout-selection" type="button" aria-label="Deselect all workout exercises">×</button>
+          </div>
+        </section>
+
+        <div class="stopwatch-float">
+          <section id="home-stopwatch-popover" class="stopwatch-popover hidden" aria-label="Stopwatch">
+            <div id="home-stopwatch" class="stopwatch-time">00:00</div>
+            <div class="stopwatch-actions">
+              <button class="primary-button" id="toggle-home-stopwatch">Start</button>
+              <button class="ghost-button" id="reset-home-stopwatch">Reset</button>
+            </div>
+          </section>
+          <button class="stopwatch-fab" id="toggle-home-stopwatch-popover" type="button" aria-label="Open stopwatch" aria-expanded="false">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path d="M9 2h6v2H9V2Zm3 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Zm-.75 2.5h1.5V12l2.25 2.25-1.06 1.06L11.25 12.6v-2.1Z"/>
+            </svg>
+          </button>
+        </div>
+
+        <nav class="bottom-nav" aria-label="Home sections">
+          <button class="nav-tab" type="button" data-home-tab="upper">Upper</button>
+          <button class="nav-tab" type="button" data-home-tab="lower">Lower</button>
+          <button class="nav-tab" type="button" data-home-tab="core">Core</button>
+          <button class="nav-tab" type="button" data-home-tab="workout">Workout</button>
+        </nav>
       </section>
     </template>
 
@@ -82,6 +123,7 @@
             <input id="exercise-name-input" type="text" maxlength="80" placeholder="Exercise name" />
             <input id="exercise-max-input" type="text" maxlength="30" placeholder="Max (kg, time, reps)" />
             <button class="primary-button" id="confirm-add-exercise">Add</button>
+            <button class="danger-button" id="cancel-add-exercise">Cancel</button>
           </div>
           <button class="primary-button add-workout-button" id="show-exercise-form">+ Add exercise</button>
         </div>
