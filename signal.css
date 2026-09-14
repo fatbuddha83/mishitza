@@ -20,7 +20,11 @@ body { font-family: Manrope, sans-serif; font-size: 14px; background: var(--bg);
 .home-exercise-primary { flex-direction: column; align-items: flex-start; gap: 2px; }
 .exercise-name { font-size: 15px; line-height: 1.4; overflow-wrap: anywhere; }
 .exercise-max { font-size: 14px; color: var(--muted); line-height: 1.4; }
+<<<<<<< HEAD
 .exercise-history { font-size: 12px; line-height: 1.4; color: #7a8597; }
+=======
+.exercise-history { font-size: 12px; line-height: 1.4; }
+>>>>>>> 206b51879152cad89c8f530aaf82fb1acc3f9f8a
 .exercise-history-new { color: var(--accent); }
 .checkmark { border-color: #6f7d91; }
 .exercise-item.selected-for-workout, .exercise-item.checked, .exercise-item.pending-completion { background: var(--accent); border-color: #ffffff40; color: white; }
@@ -46,7 +50,11 @@ input::placeholder { color: #64718a; }
 .exercise-form { gap: 16px; margin-top: 0; }
 .add-workout-button { background: transparent; border: 1px dashed #91a2ba; color: var(--accent); min-height: 56px; font-family: Manrope, sans-serif; text-transform: none; font-size: 14px; }
 .add-workout-button:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+<<<<<<< HEAD
 .home-links { justify-content: center; margin-top: 20px; }
+=======
+.home-links { justify-content: flex-start; margin-top: 20px; }
+>>>>>>> 206b51879152cad89c8f530aaf82fb1acc3f9f8a
 .text-link { color: var(--accent); }
 .bottom-nav { background: white; border: 0; border-top: 1px solid #dce2eb; box-shadow: none; }
 .nav-tab { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 18px; min-height: 60px; border: 0; color: var(--text); }
@@ -54,11 +62,14 @@ input::placeholder { color: #64718a; }
 .nav-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 10px 4px; text-transform: none; }
 .nav-tab::before { content: ''; display: block; width: 22px; height: 22px; background: currentColor; mask: url('./nav-upper.svg') center / contain no-repeat; -webkit-mask: url('./nav-upper.svg') center / contain no-repeat; }
 .nav-tab[data-home-tab='core']::before { mask-image: url('./nav-core.svg'); -webkit-mask-image: url('./nav-core.svg'); }
+<<<<<<< HEAD
 .nav-tab[data-home-tab='lower']::before { mask-image: url('./nav-lower.svg'); -webkit-mask-image: url('./nav-lower.svg'); }
 .exercise-link-button svg { display: none; }
 .exercise-link-button::before { content: ''; width: 24px; height: 24px; background: currentColor; mask: url('./exercise-play.svg') center / contain no-repeat; -webkit-mask: url('./exercise-play.svg') center / contain no-repeat; }
 .exercise-item.selected-for-workout .exercise-history, .exercise-item.checked .exercise-history { color: #d5dfff; }
 .hero h1 { margin-top: 0; }
+=======
+>>>>>>> 206b51879152cad89c8f530aaf82fb1acc3f9f8a
 .nav-tab[data-home-tab='workout']::before { mask-image: url('./nav-workout.svg'); -webkit-mask-image: url('./nav-workout.svg'); }
 .stopwatch-float, .selected-exercises-action, .my-workout-action { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); }
 .stopwatch-float-raised { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }

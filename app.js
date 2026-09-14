@@ -8,6 +8,9 @@ const dialogRoot = document.getElementById("dialog-root");
 const homeTemplate = document.getElementById("home-screen-template");
 const workoutTemplate = document.getElementById("workout-screen-template");
 const stopwatchStore = {};
+const HOME_EXERCISE_TABS = ["upper", "lower", "core"];
+const HOME_TABS = [...HOME_EXERCISE_TABS, "workout"];
+let activeHomeTab = "upper";
 let activeStopwatchIntervalId = null;
 let completeMessageTimeoutId = null;
 
@@ -102,43 +105,120 @@ function saveState() {
 
 function createEmptyState() {
   return {
+    exercises: [],
     workouts: [],
+    selectedExerciseIds: [],
+    myWorkoutExerciseIds: [],
+    selectedMyWorkoutExerciseIds: [],
     currentWorkoutId: null,
     lastCompletedWorkoutId: null,
   };
 }
 
+function normalizeExerciseCategory(value) {
+  const category = String(value ?? "").toLowerCase();
+  return HOME_EXERCISE_TABS.includes(category) ? category : "upper";
+}
+
+function formatHomeTabTitle(tab) {
+  return String(tab ?? "upper").toUpperCase();
+}
+
+function reorderExercisesWithinCategory(category, orderedIds) {
+  const reordered = reorderCollectionByIds(
+    state.exercises.filter((exercise) => exercise.category === category),
+    orderedIds
+  );
+  let index = 0;
+
+  state.exercises = state.exercises.map((exercise) => (
+    exercise.category === category ? reordered[index++] : exercise
+  ));
+}
+
+function moveExerciseToTopOfCategory(exerciseId) {
+  const exercise = state.exercises.find((entry) => entry.id === exerciseId);
+
+  if (!exercise) {
+    return;
+  }
+
+  const reordered = [
+    exercise,
+    ...state.exercises.filter((entry) => entry.category === exercise.category && entry.id !== exerciseId),
+  ];
+  let index = 0;
+
+  state.exercises = state.exercises.map((entry) => (
+    entry.category === exercise.category ? reordered[index++] : entry
+  ));
+}
+
 function normalizeState(parsed) {
+  const normalizeExercise = (exercise) => ({
+    id: exercise.id || crypto.randomUUID(),
+    name: exercise.name ?? "",
+    max: exercise.max ?? exercise.reps ?? "",
+    category: normalizeExerciseCategory(exercise.category),
+    checked: Boolean(exercise.checked),
+    lastCompletedAt: exercise.lastCompletedAt ?? null,
+  });
+
+  const workouts = Array.isArray(parsed.workouts)
+    ? parsed.workouts.map((workout) => ({
+        id: workout.id || crypto.randomUUID(),
+        title: workout.title ?? "",
+        exercises: Array.isArray(workout.exercises)
+          ? workout.exercises.map(normalizeExercise)
+          : [],
+        lastCompletedAt: workout.lastCompletedAt ?? null,
+      }))
+    : [];
+
+  const workoutExercises = workouts.flatMap((workout) => workout.exercises.map((exercise) => ({
+    ...exercise,
+    checked: false,
+  })));
+
+  const exercises = Array.isArray(parsed.exercises) && parsed.exercises.length > 0
+    ? parsed.exercises.map(normalizeExercise)
+    : workoutExercises;
+
+  const exerciseIds = new Set(exercises.map((exercise) => exercise.id));
+  const normalizeExerciseIds = (values) => [...new Set(
+    (Array.isArray(values) ? values : []).filter((id) => exerciseIds.has(id))
+  )];
+  const myWorkoutExerciseIds = normalizeExerciseIds(parsed.myWorkoutExerciseIds);
+
   return {
-    workouts: Array.isArray(parsed.workouts)
-      ? parsed.workouts.map((workout) => ({
-          id: workout.id || crypto.randomUUID(),
-          title: workout.title ?? "",
-          exercises: Array.isArray(workout.exercises)
-            ? workout.exercises.map((exercise) => ({
-                id: exercise.id || crypto.randomUUID(),
-                name: exercise.name ?? "",
-                max: exercise.max ?? exercise.reps ?? "",
-                checked: Boolean(exercise.checked),
-              }))
-            : [],
-          lastCompletedAt: workout.lastCompletedAt ?? null,
-        }))
-      : [],
+    exercises,
+    workouts,
+    selectedExerciseIds: normalizeExerciseIds(parsed.selectedExerciseIds),
+    myWorkoutExerciseIds,
+    selectedMyWorkoutExerciseIds: normalizeExerciseIds(parsed.selectedMyWorkoutExerciseIds)
+      .filter((id) => myWorkoutExerciseIds.includes(id)),
     currentWorkoutId: parsed.currentWorkoutId ?? null,
     lastCompletedWorkoutId: parsed.lastCompletedWorkoutId ?? null,
   };
 }
 
 function replaceState(nextState) {
+  state.exercises = nextState.exercises;
   state.workouts = nextState.workouts;
+  state.selectedExerciseIds = nextState.selectedExerciseIds;
+  state.myWorkoutExerciseIds = nextState.myWorkoutExerciseIds;
+  state.selectedMyWorkoutExerciseIds = nextState.selectedMyWorkoutExerciseIds;
   state.currentWorkoutId = nextState.currentWorkoutId;
   state.lastCompletedWorkoutId = nextState.lastCompletedWorkoutId;
 }
 
 function exportStateToJson() {
   const backup = {
+    exercises: state.exercises,
     workouts: state.workouts,
+    selectedExerciseIds: state.selectedExerciseIds,
+    myWorkoutExerciseIds: state.myWorkoutExerciseIds,
+    selectedMyWorkoutExerciseIds: state.selectedMyWorkoutExerciseIds,
     lastCompletedWorkoutId: state.lastCompletedWorkoutId,
     exportedAt: new Date().toISOString(),
   };
@@ -169,22 +249,52 @@ function render() {
 
 function renderHomeScreen() {
   const fragment = homeTemplate.content.cloneNode(true);
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
   const title = fragment.getElementById("home-screen-title");
 >>>>>>> Stashed changes
+=======
+  const subtitle = fragment.getElementById("home-screen-subtitle");
+  const title = fragment.getElementById("home-screen-title");
+>>>>>>> 206b51879152cad89c8f530aaf82fb1acc3f9f8a
   const formCard = fragment.getElementById("workout-form-card");
-  const showFormButton = fragment.getElementById("show-workout-form");
-  const saveWorkoutButton = fragment.getElementById("save-workout");
-  const workoutTitleInput = fragment.getElementById("workout-title-input");
-  const workoutList = fragment.getElementById("workout-list");
+  const showFormButton = fragment.getElementById("show-exercise-form");
+  const addAction = fragment.getElementById("home-add-action");
+  const saveExerciseButton = fragment.getElementById("save-exercise");
+  const cancelExerciseButton = fragment.getElementById("cancel-home-exercise");
+  const exerciseNameInput = fragment.getElementById("exercise-name-input");
+  const exerciseMaxInput = fragment.getElementById("exercise-max-input");
+  const exerciseList = fragment.getElementById("exercise-list");
+  const selectedExercisesAction = fragment.getElementById("selected-exercises-action");
+  const addSelectedToWorkoutButton = fragment.getElementById("add-selected-to-workout");
+  const clearSelectedExercisesButton = fragment.getElementById("clear-selected-exercises");
+  const myWorkoutScreen = fragment.getElementById("my-workout-screen");
+  const myWorkoutList = fragment.getElementById("my-workout-list");
+  const completeMyWorkoutButton = fragment.getElementById("complete-my-workout");
+  const clearMyWorkoutSelectionButton = fragment.getElementById("clear-my-workout-selection");
+  const homeStopwatchPopover = fragment.getElementById("home-stopwatch-popover");
+  const homeStopwatchTime = fragment.getElementById("home-stopwatch");
+  const toggleHomeStopwatchButton = fragment.getElementById("toggle-home-stopwatch");
+  const resetHomeStopwatchButton = fragment.getElementById("reset-home-stopwatch");
+  const stopwatchPopoverButton = fragment.getElementById("toggle-home-stopwatch-popover");
+  const stopwatchFloat = fragment.querySelector(".stopwatch-float");
+  const navButtons = [...fragment.querySelectorAll("[data-home-tab]")];
+  const exerciseTabButtons = navButtons.filter((button) => HOME_EXERCISE_TABS.includes(button.dataset.homeTab));
+  const homeLinks = fragment.getElementById("home-links");
   const exportButton = fragment.getElementById("export-data");
   const importButton = fragment.getElementById("import-data");
   const importFileInput = fragment.getElementById("import-file-input");
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
   const isMyWorkoutTab = activeHomeTab === "workout";
 
+=======
+  const isMyWorkoutTab = activeHomeTab === "workout";
+
+  subtitle.textContent = "MISHITZA WORKOUT TRACKER";
+>>>>>>> 206b51879152cad89c8f530aaf82fb1acc3f9f8a
   title.textContent = isMyWorkoutTab ? "MY WORKOUT" : formatHomeTabTitle(activeHomeTab);
 
   navButtons.forEach((button) => {
@@ -258,50 +368,83 @@ function renderHomeScreen() {
     myWorkoutScreen.classList.add("hidden");
     selectedExercisesAction.classList.toggle("hidden", state.selectedExerciseIds.length === 0);
   }
+<<<<<<< HEAD
 >>>>>>> Stashed changes
+=======
+>>>>>>> 206b51879152cad89c8f530aaf82fb1acc3f9f8a
 
   showFormButton.addEventListener("click", () => {
-    document.addEventListener("click", handleOutsideWorkoutForm);
+    document.addEventListener("click", handleOutsideExerciseForm);
     formCard.classList.remove("hidden");
-    workoutTitleInput.focus();
+    exerciseNameInput.focus();
     scrollIntoViewAfterKeyboard(formCard);
   });
 
-  const submitWorkout = () => {
-    const title = workoutTitleInput.value.trim();
+  const submitExercise = () => {
+    const name = exerciseNameInput.value.trim();
+    const max = exerciseMaxInput.value.trim();
 
-    if (!title) {
-      workoutTitleInput.focus();
+    if (!name) {
+      exerciseNameInput.focus();
       return;
     }
 
-    state.workouts.push({
+    if (!max) {
+      exerciseMaxInput.focus();
+      return;
+    }
+
+    state.exercises.push({
       id: crypto.randomUUID(),
-      title,
-      exercises: [],
+      name,
+      max,
+      category: activeHomeTab,
+      checked: false,
+      lastCompletedAt: null,
     });
 
-    document.removeEventListener("click", handleOutsideWorkoutForm);
+    closeExerciseForm();
     saveState();
     render();
   };
 
-  saveWorkoutButton.addEventListener("click", submitWorkout);
-  workoutTitleInput.addEventListener("keydown", (event) => {
+  saveExerciseButton.addEventListener("click", submitExercise);
+  cancelExerciseButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    closeExerciseForm();
+  });
+  exerciseNameInput.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") {
       return;
     }
 
     event.preventDefault();
-    submitWorkout();
+    exerciseMaxInput.focus();
   });
-  workoutTitleInput.addEventListener("focus", () => {
+  exerciseMaxInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    submitExercise();
+  });
+  exerciseNameInput.addEventListener("focus", () => {
     scrollIntoViewAfterKeyboard(formCard);
   });
-  workoutTitleInput.addEventListener("click", (event) => {
+  exerciseMaxInput.addEventListener("focus", () => {
+    scrollIntoViewAfterKeyboard(formCard);
+  });
+  exerciseNameInput.addEventListener("click", (event) => {
     event.stopPropagation();
   });
-  saveWorkoutButton.addEventListener("click", (event) => {
+  exerciseMaxInput.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  saveExerciseButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  cancelExerciseButton.addEventListener("click", (event) => {
     event.stopPropagation();
   });
   exportButton.addEventListener("click", exportStateToJson);
@@ -332,106 +475,141 @@ function renderHomeScreen() {
     }
   });
 
-  if (state.workouts.length === 0) {
-    workoutList.innerHTML = '<div class="empty-state">No workouts yet. Add one to get started.</div>';
-  } else {
-    state.workouts.forEach((workout) => {
-      const item = document.createElement("div");
-      item.className = "workout-item";
-      item.dataset.workoutId = workout.id;
-      item.setAttribute("role", "button");
-      item.setAttribute("tabindex", "0");
+  addSelectedToWorkoutButton.addEventListener("click", () => {
+    addSelectedExercisesToMyWorkout();
+  });
+  clearSelectedExercisesButton.addEventListener("click", () => {
+    state.selectedExerciseIds = [];
+    saveState();
+    render();
+  });
 
-      const meta = document.createElement("div");
-      meta.className = "workout-meta";
+  if (!isMyWorkoutTab) {
+    const visibleExercises = state.exercises.filter((exercise) => exercise.category === activeHomeTab);
 
-      const name = document.createElement("span");
-      name.className = "workout-name";
-      name.textContent = workout.title;
+    if (visibleExercises.length === 0) {
+      exerciseList.innerHTML = `<div class="empty-state">No ${activeHomeTab} exercises yet. Add one to get started.</div>`;
+    } else {
+      visibleExercises.forEach((exercise) => {
+        const item = document.createElement("div");
+        const isSelected = state.selectedExerciseIds.includes(exercise.id);
+        item.className = `exercise-item${isSelected ? " selected-for-workout" : ""}`;
+        item.dataset.exerciseId = exercise.id;
+        item.setAttribute("role", "button");
+        item.setAttribute("tabindex", "0");
 
-      const count = document.createElement("span");
-      count.className = "workout-count";
-      count.textContent = `${workout.exercises.length} exercise${workout.exercises.length === 1 ? "" : "s"}`;
+        const label = document.createElement("div");
+        label.className = "exercise-label home-exercise-label";
 
-      meta.append(name, count);
+        const primary = document.createElement("div");
+        primary.className = "home-exercise-primary";
 
-      item.appendChild(meta);
+        const name = document.createElement("span");
+        name.className = "exercise-name";
+        name.textContent = exercise.name;
 
-      const grip = document.createElement("span");
-      grip.className = "drag-grip";
-      grip.setAttribute("aria-label", "Reorder workout");
-      grip.innerHTML = `
-        <span class="drag-grip-dots" aria-hidden="true">
-          <span></span><span></span>
-          <span></span><span></span>
-          <span></span><span></span>
-        </span>
-      `;
-      item.appendChild(grip);
+        const max = document.createElement("span");
+        max.className = "exercise-max";
+        max.textContent = exercise.max || "";
 
-      if (state.lastCompletedWorkoutId === workout.id) {
-        const badgeWrap = document.createElement("div");
-        badgeWrap.className = "badge-stack";
+        primary.append(name, max);
 
-        const badge = document.createElement("span");
-        badge.className = "badge badge-complete";
-        badge.textContent = "Latest";
+        const history = document.createElement("span");
+        history.className = `exercise-history${exercise.lastCompletedAt ? "" : " exercise-history-new"}`;
+        history.textContent = exercise.lastCompletedAt ? formatCompletionDate(exercise.lastCompletedAt) : "NEW";
 
-        const date = document.createElement("span");
-        date.className = "completion-date";
-        date.textContent = formatCompletionDate(workout.lastCompletedAt);
+        label.append(primary, history);
 
-        badgeWrap.append(badge, date);
-        item.insertBefore(badgeWrap, grip);
-      }
+        const checkmark = document.createElement("span");
+        checkmark.className = "checkmark";
+        checkmark.textContent = isSelected ? "✓" : "";
 
-      item.addEventListener("click", () => {
-        if (item.querySelector(".inline-item-editor")) {
-          return;
-        }
+        const externalLinkButton = createExerciseLinkButton(exercise.name);
 
-        openWorkout(workout.id);
+        const grip = document.createElement("span");
+        grip.className = "drag-grip";
+        grip.setAttribute("aria-label", "Reorder exercise");
+        grip.innerHTML = `
+          <span class="drag-grip-dots" aria-hidden="true">
+            <span></span><span></span>
+            <span></span><span></span>
+            <span></span><span></span>
+          </span>
+        `;
+
+        item.append(checkmark, label, externalLinkButton, grip);
+
+        item.addEventListener("click", () => {
+          if (item.querySelector(".inline-item-editor")) {
+            return;
+          }
+
+          toggleHomeExerciseSelection(exercise.id);
+        });
+
+        item.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") {
+            return;
+          }
+
+          if (item.querySelector(".inline-item-editor")) {
+            return;
+          }
+
+          event.preventDefault();
+          toggleHomeExerciseSelection(exercise.id);
+        });
+
+        attachHoldGesture(grip, {
+          dragElement: item,
+          container: exerciseList,
+          itemSelector: ".exercise-item",
+          dropTargets: exerciseTabButtons.map((button) => ({
+            element: button,
+            value: button.dataset.homeTab,
+          })),
+          onHold: () => {
+            renderHomeExerciseEditor({
+              item,
+              exercise,
+            });
+          },
+          onReorder: (orderedIds) => {
+            reorderExercisesWithinCategory(activeHomeTab, orderedIds);
+            saveState();
+            render();
+          },
+          onExternalDrop: (targetCategory) => {
+            if (!HOME_EXERCISE_TABS.includes(targetCategory) || targetCategory === exercise.category) {
+              return false;
+            }
+
+            exercise.category = targetCategory;
+            moveExerciseToTopOfCategory(exercise.id);
+            activeHomeTab = targetCategory;
+            saveState();
+            render();
+            return true;
+          },
+        });
+
+        exerciseList.appendChild(item);
       });
-
-      item.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter" && event.key !== " ") {
-          return;
-        }
-
-        if (item.querySelector(".inline-item-editor")) {
-          return;
-        }
-
-        event.preventDefault();
-        openWorkout(workout.id);
-      });
-
-      attachHoldGesture(grip, {
-        dragElement: item,
-        container: workoutList,
-        itemSelector: ".workout-item",
-        onHold: () => {
-          renderWorkoutRowEditor({
-            item,
-            workout,
-          });
-        },
-        onReorder: (orderedIds) => {
-          state.workouts = reorderCollectionByIds(state.workouts, orderedIds);
-          saveState();
-          render();
-        },
-      });
-
-      workoutList.appendChild(item);
-    });
+    }
   }
 
   app.appendChild(fragment);
 
-  function handleOutsideWorkoutForm(event) {
+  function closeExerciseForm() {
+    formCard.classList.add("hidden");
+    exerciseNameInput.value = "";
+    exerciseMaxInput.value = "";
+    document.removeEventListener("click", handleOutsideExerciseForm);
+  }
+
+  function handleOutsideExerciseForm(event) {
     if (formCard.classList.contains("hidden")) {
-      document.removeEventListener("click", handleOutsideWorkoutForm);
+      document.removeEventListener("click", handleOutsideExerciseForm);
       return;
     }
 
@@ -439,9 +617,7 @@ function renderHomeScreen() {
       return;
     }
 
-    formCard.classList.add("hidden");
-    workoutTitleInput.value = "";
-    document.removeEventListener("click", handleOutsideWorkoutForm);
+    closeExerciseForm();
   }
 }
 
@@ -466,6 +642,7 @@ function renderWorkoutScreen(workoutId) {
   const exerciseNameInput = fragment.getElementById("exercise-name-input");
   const exerciseMaxInput = fragment.getElementById("exercise-max-input");
   const confirmAddExerciseButton = fragment.getElementById("confirm-add-exercise");
+  const cancelAddExerciseButton = fragment.getElementById("cancel-add-exercise");
   const completeMessage = fragment.getElementById("workout-complete-message");
   const progressBar = fragment.getElementById("workout-progress-bar");
   const stopwatchTime = fragment.getElementById("workout-stopwatch");
@@ -573,15 +750,16 @@ function renderWorkoutScreen(workoutId) {
       checked: false,
     });
 
-    exerciseNameInput.value = "";
-    exerciseMaxInput.value = "";
-    exerciseForm.classList.add("hidden");
-    document.removeEventListener("click", handleOutsideExerciseForm);
+    closeWorkoutExerciseForm();
     saveState();
     render();
   };
 
   confirmAddExerciseButton.addEventListener("click", submitExercise);
+  cancelAddExerciseButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    closeWorkoutExerciseForm();
+  });
   exerciseNameInput.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") {
       return;
@@ -611,6 +789,9 @@ function renderWorkoutScreen(workoutId) {
     event.stopPropagation();
   });
   confirmAddExerciseButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+  cancelAddExerciseButton.addEventListener("click", (event) => {
     event.stopPropagation();
   });
 
@@ -650,24 +831,9 @@ function renderWorkoutScreen(workoutId) {
         </span>
       `;
 
-      const externalLinkButton = document.createElement("button");
-      externalLinkButton.type = "button";
-      externalLinkButton.className = "exercise-link-button";
-      externalLinkButton.setAttribute("aria-label", `Search ${exercise.name} on YouTube`);
-      externalLinkButton.innerHTML = `
-        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-          <path d="M4.75 6.5A2.25 2.25 0 0 1 7 4.25h8A2.25 2.25 0 0 1 17.25 6.5v2.05l3.14-2.52a1.35 1.35 0 0 1 2.19 1.05v9.84a1.35 1.35 0 0 1-2.19 1.05l-3.14-2.52v2.05A2.25 2.25 0 0 1 15 19.75H7a2.25 2.25 0 0 1-2.25-2.25v-11Z"/>
-        </svg>
-      `;
+      const externalLinkButton = createExerciseLinkButton(exercise.name);
 
       item.append(checkmark, label, externalLinkButton, grip);
-
-      externalLinkButton.addEventListener("click", (event) => {
-        event.stopPropagation();
-        const query = encodeURIComponent(exercise.name.trim());
-        const url = `https://www.youtube.com/results?search_query=${query}`;
-        window.open(url, "_blank", "noopener,noreferrer");
-      });
 
       item.addEventListener("click", () => {
         if (item.querySelector(".inline-item-editor")) {
@@ -742,6 +908,13 @@ function renderWorkoutScreen(workoutId) {
     document.removeEventListener("click", handleOutsideTitleSave);
   }
 
+  function closeWorkoutExerciseForm() {
+    exerciseForm.classList.add("hidden");
+    exerciseNameInput.value = "";
+    exerciseMaxInput.value = "";
+    document.removeEventListener("click", handleOutsideExerciseForm);
+  }
+
   function handleOutsideExerciseForm(event) {
     if (exerciseForm.classList.contains("hidden")) {
       document.removeEventListener("click", handleOutsideExerciseForm);
@@ -752,10 +925,7 @@ function renderWorkoutScreen(workoutId) {
       return;
     }
 
-    exerciseForm.classList.add("hidden");
-    exerciseNameInput.value = "";
-    exerciseMaxInput.value = "";
-    document.removeEventListener("click", handleOutsideExerciseForm);
+    closeWorkoutExerciseForm();
   }
 }
 
@@ -763,6 +933,199 @@ function syncExerciseItem(item, exercise, checkmark, name) {
   item.classList.toggle("checked", exercise.checked);
   checkmark.textContent = exercise.checked ? "✓" : "";
   name.setAttribute("aria-checked", exercise.checked ? "true" : "false");
+}
+
+function createExerciseLinkButton(exerciseName) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "exercise-link-button";
+  button.setAttribute("aria-label", `Search ${exerciseName} on YouTube`);
+  button.innerHTML = `
+    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+      <path d="M4.75 6.5A2.25 2.25 0 0 1 7 4.25h8A2.25 2.25 0 0 1 17.25 6.5v2.05l3.14-2.52a1.35 1.35 0 0 1 2.19 1.05v9.84a1.35 1.35 0 0 1-2.19 1.05l-3.14-2.52v2.05A2.25 2.25 0 0 1 15 19.75H7a2.25 2.25 0 0 1-2.25-2.25v-11Z"/>
+    </svg>
+  `;
+
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const query = encodeURIComponent(exerciseName.trim());
+    const url = `https://www.youtube.com/results?search_query=${query}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  });
+
+  return button;
+}
+
+function toggleHomeExerciseSelection(exerciseId) {
+  const selected = new Set(state.selectedExerciseIds);
+
+  if (selected.has(exerciseId)) {
+    selected.delete(exerciseId);
+  } else {
+    selected.add(exerciseId);
+  }
+
+  state.selectedExerciseIds = [...selected];
+  saveState();
+  render();
+}
+
+function addSelectedExercisesToMyWorkout() {
+  const queued = new Set(state.myWorkoutExerciseIds);
+  state.selectedExerciseIds.forEach((exerciseId) => queued.add(exerciseId));
+  state.myWorkoutExerciseIds = [...queued];
+  state.selectedExerciseIds = [];
+  activeHomeTab = "workout";
+  saveState();
+  render();
+}
+
+function getMyWorkoutExercises() {
+  const exercisesById = new Map(state.exercises.map((exercise) => [exercise.id, exercise]));
+  return state.myWorkoutExerciseIds
+    .map((exerciseId) => exercisesById.get(exerciseId))
+    .filter(Boolean);
+}
+
+function renderMyWorkoutList(list) {
+  const exercises = getMyWorkoutExercises();
+
+  if (exercises.length === 0) {
+    return;
+  }
+
+  exercises.forEach((exercise) => {
+    const item = document.createElement("div");
+    const isSelected = state.selectedMyWorkoutExerciseIds.includes(exercise.id);
+    item.className = `exercise-item my-workout-item${isSelected ? " selected-for-workout" : ""}`;
+    item.dataset.exerciseId = exercise.id;
+    item.setAttribute("role", "button");
+    item.setAttribute("tabindex", "0");
+
+    const label = document.createElement("div");
+    label.className = "exercise-label home-exercise-label";
+
+    const primary = document.createElement("div");
+    primary.className = "home-exercise-primary";
+
+    const name = document.createElement("span");
+    name.className = "exercise-name";
+    name.textContent = exercise.name;
+
+    const max = document.createElement("span");
+    max.className = "exercise-max";
+    max.textContent = exercise.max || "";
+
+    const category = document.createElement("span");
+    category.className = "exercise-history";
+    category.textContent = exercise.category.toUpperCase();
+
+    const grip = document.createElement("span");
+    grip.className = "drag-grip";
+    grip.setAttribute("aria-label", "Reorder workout exercise");
+    grip.innerHTML = `
+      <span class="drag-grip-dots" aria-hidden="true">
+        <span></span><span></span>
+        <span></span><span></span>
+        <span></span><span></span>
+      </span>
+    `;
+
+    primary.append(name, max);
+    label.append(primary, category);
+    const checkmark = document.createElement("span");
+    checkmark.className = "checkmark";
+    checkmark.textContent = isSelected ? "✓" : "";
+
+    item.append(checkmark, label, createExerciseLinkButton(exercise.name), grip);
+
+    item.addEventListener("click", () => {
+      toggleMyWorkoutExerciseSelection(exercise.id);
+    });
+
+    item.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+
+      event.preventDefault();
+      toggleMyWorkoutExerciseSelection(exercise.id);
+    });
+
+    attachHoldGesture(grip, {
+      dragElement: item,
+      container: list,
+      itemSelector: ".my-workout-item",
+      onHold: () => {},
+      onReorder: (orderedIds) => {
+        state.myWorkoutExerciseIds = orderedIds;
+        saveState();
+        render();
+      },
+    });
+
+    list.appendChild(item);
+  });
+}
+
+function completeMyWorkout() {
+  const completedExercises = getMyWorkoutExercises();
+
+  if (completedExercises.length === 0) {
+    state.myWorkoutExerciseIds = [];
+    saveState();
+    render();
+    return;
+  }
+
+  const completedIds = new Set(completedExercises.map((exercise) => exercise.id));
+  const completedAt = new Date().toISOString();
+
+  state.exercises.forEach((exercise) => {
+    if (completedIds.has(exercise.id)) {
+      exercise.lastCompletedAt = completedAt;
+    }
+  });
+
+  HOME_EXERCISE_TABS.forEach((category) => {
+    const categoryExercises = state.exercises.filter((exercise) => exercise.category === category);
+    const completed = categoryExercises.filter((exercise) => completedIds.has(exercise.id));
+    const remaining = categoryExercises.filter((exercise) => !completedIds.has(exercise.id));
+    const reordered = [...completed, ...remaining];
+    let index = 0;
+
+    state.exercises = state.exercises.map((exercise) => (
+      exercise.category === category ? reordered[index++] : exercise
+    ));
+  });
+
+  state.myWorkoutExerciseIds = [];
+  state.selectedExerciseIds = [];
+  state.selectedMyWorkoutExerciseIds = [];
+  saveState();
+  render();
+}
+
+function toggleMyWorkoutExerciseSelection(exerciseId) {
+  const selected = new Set(state.selectedMyWorkoutExerciseIds);
+
+  if (selected.has(exerciseId)) {
+    selected.delete(exerciseId);
+  } else {
+    selected.add(exerciseId);
+  }
+
+  state.selectedMyWorkoutExerciseIds = [...selected];
+  saveState();
+  render();
+}
+
+function removeSelectedMyWorkoutExercises() {
+  const selected = new Set(state.selectedMyWorkoutExerciseIds);
+  state.myWorkoutExerciseIds = state.myWorkoutExerciseIds.filter((id) => !selected.has(id));
+  state.selectedMyWorkoutExerciseIds = [];
+  saveState();
+  render();
 }
 
 function syncWorkoutProgress(progressBar, completeMessage, workout) {
@@ -995,6 +1358,119 @@ function renderExerciseEditor({ item, exercise, workout, progressBar, completeMe
   }
 }
 
+function renderHomeExerciseEditor({ item, exercise }) {
+  item.innerHTML = "";
+  item.removeAttribute("role");
+  item.removeAttribute("tabindex");
+
+  const editor = document.createElement("div");
+  editor.className = "card workout-form exercise-form inline-item-editor";
+
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.maxLength = 80;
+  nameInput.placeholder = "Exercise name";
+  nameInput.value = exercise.name;
+
+  const maxInput = document.createElement("input");
+  maxInput.type = "text";
+  maxInput.maxLength = 30;
+  maxInput.placeholder = "Max (kg, time, reps)";
+  maxInput.value = exercise.max || "";
+
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "primary-button";
+  saveButton.textContent = "Save";
+
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "danger-button";
+  deleteButton.textContent = "Delete";
+
+  const save = () => {
+    const nextName = nameInput.value.trim();
+    const nextMax = maxInput.value.trim();
+
+    if (!nextName) {
+      nameInput.focus();
+      return;
+    }
+
+    if (!nextMax) {
+      maxInput.focus();
+      return;
+    }
+
+    exercise.name = nextName;
+    exercise.max = nextMax;
+    saveState();
+    render();
+  };
+
+  nameInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    maxInput.focus();
+  });
+
+  maxInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    save();
+  });
+
+  saveButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    save();
+  });
+
+  deleteButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    showConfirmDialog({
+      title: "Delete the exercise?",
+      message: `This will remove "${exercise.name}".`,
+      confirmLabel: "Yes",
+      onConfirm: () => {
+        state.exercises = state.exercises.filter((entry) => entry.id !== exercise.id);
+        state.selectedExerciseIds = state.selectedExerciseIds.filter((id) => id !== exercise.id);
+        state.myWorkoutExerciseIds = state.myWorkoutExerciseIds.filter((id) => id !== exercise.id);
+        state.selectedMyWorkoutExerciseIds = state.selectedMyWorkoutExerciseIds.filter((id) => id !== exercise.id);
+        saveState();
+        render();
+      },
+    });
+  });
+
+  editor.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
+  editor.append(nameInput, maxInput, saveButton, deleteButton);
+  item.appendChild(editor);
+  nameInput.focus();
+  nameInput.select();
+
+  window.setTimeout(() => {
+    document.addEventListener("click", handleOutsideHomeExerciseEditor);
+  }, 0);
+
+  function handleOutsideHomeExerciseEditor(event) {
+    if (editor.contains(event.target)) {
+      return;
+    }
+
+    document.removeEventListener("click", handleOutsideHomeExerciseEditor);
+    render();
+  }
+}
+
 function renderWorkoutRowEditor({ item, workout }) {
   item.innerHTML = "";
   item.removeAttribute("role");
@@ -1118,10 +1594,21 @@ function formatCompletionDate(value) {
     return "";
   }
 
-  const day = String(date.getDate());
-  const month = String(date.getMonth() + 1);
-  const year = String(date.getFullYear());
-  return `${day}.${month}.${year}`;
+  const completedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const today = new Date();
+  const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diffMs = todayDay.getTime() - completedDay.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffDays <= 0) {
+    return "Today";
+  }
+
+  if (diffDays === 1) {
+    return "Yesterday";
+  }
+
+  return `${diffDays} days ago`;
 }
 
 function resetAllWorkoutProgress() {
@@ -1132,7 +1619,15 @@ function resetAllWorkoutProgress() {
   });
 }
 
-function attachHoldGesture(handle, { dragElement, container, itemSelector, onHold, onReorder }) {
+function attachHoldGesture(handle, {
+  dragElement,
+  container,
+  itemSelector,
+  onHold,
+  onReorder,
+  dropTargets = [],
+  onExternalDrop,
+}) {
   let dragTimeoutId = null;
   let editTimeoutId = null;
   let suppressClick = false;
@@ -1145,6 +1640,7 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
   let pointerOffsetX = 0;
   let placeholder = null;
   let dragRect = null;
+  let activeDropTarget = null;
 
   const clearTimers = () => {
     if (dragTimeoutId) {
@@ -1164,8 +1660,46 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
     window.removeEventListener("pointercancel", onPointerCancel);
   };
 
+  const setActiveDropTarget = (nextDropTarget) => {
+    if (activeDropTarget?.element === nextDropTarget?.element) {
+      return;
+    }
+
+    if (activeDropTarget?.element) {
+      activeDropTarget.element.classList.remove("nav-tab-drop-over");
+    }
+
+    activeDropTarget = nextDropTarget;
+
+    if (activeDropTarget?.element) {
+      activeDropTarget.element.classList.add("nav-tab-drop-over");
+    }
+  };
+
+  const clearDropTargetState = () => {
+    if (!activeDropTarget?.element) {
+      activeDropTarget = null;
+      return;
+    }
+
+    activeDropTarget.element.classList.remove("nav-tab-drop-over");
+    activeDropTarget = null;
+  };
+
+  const getDropTargetAtPoint = (clientX, clientY) => {
+    for (const target of dropTargets) {
+      const rect = target.element.getBoundingClientRect();
+      if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+        return target;
+      }
+    }
+
+    return null;
+  };
+
   const resetVisualState = () => {
     dragElement.classList.remove("hold-ready");
+    clearDropTargetState();
 
     if (!dragging) {
       return;
@@ -1213,6 +1747,7 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
 
     dragElement.style.left = `${event.clientX - pointerOffsetX}px`;
     dragElement.style.top = `${event.clientY - pointerOffsetY}px`;
+    setActiveDropTarget(getDropTargetAtPoint(event.clientX, event.clientY));
 
     const siblings = [...container.querySelectorAll(itemSelector)].filter((item) => item !== dragElement);
     let inserted = false;
@@ -1233,15 +1768,24 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
     }
   };
 
-  const finishDrag = () => {
+  const finishDrag = (event) => {
     if (!dragging) {
       return;
     }
 
-    container.insertBefore(dragElement, placeholder);
-    placeholder.remove();
-    placeholder = null;
+    const dropTarget = activeDropTarget ?? getDropTargetAtPoint(event.clientX, event.clientY);
+
+    if (placeholder) {
+      container.insertBefore(dragElement, placeholder);
+      placeholder.remove();
+      placeholder = null;
+    }
+
     resetVisualState();
+
+    if (dropTarget && typeof onExternalDrop === "function" && onExternalDrop(dropTarget.value)) {
+      return;
+    }
 
     const orderedIds = [...container.querySelectorAll(itemSelector)].map((item) => item.dataset.workoutId ?? item.dataset.exerciseId);
     onReorder(orderedIds);
@@ -1279,7 +1823,7 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
     cleanupPointerListeners();
 
     if (dragging) {
-      finishDrag();
+      finishDrag(event);
       dragElement.blur();
     } else if (holdReady) {
       suppressClick = true;
@@ -1321,6 +1865,7 @@ function attachHoldGesture(handle, { dragElement, container, itemSelector, onHol
     holdReady = false;
     dragging = false;
     suppressClick = false;
+    clearDropTargetState();
 
     dragTimeoutId = window.setTimeout(() => {
       holdReady = true;
@@ -1374,7 +1919,7 @@ function scrollIntoViewAfterKeyboard(element) {
   }, 250);
 }
 
-function showConfirmDialog({ title, message, confirmLabel, onConfirm }) {
+function showConfirmDialog({ title, message, confirmLabel, cancelLabel = "Cancel", onConfirm }) {
   dialogRoot.innerHTML = "";
 
   const backdrop = document.createElement("div");
@@ -1395,7 +1940,7 @@ function showConfirmDialog({ title, message, confirmLabel, onConfirm }) {
   const cancelButton = document.createElement("button");
   cancelButton.type = "button";
   cancelButton.className = "ghost-button";
-  cancelButton.textContent = "Cancel";
+  cancelButton.textContent = cancelLabel;
 
   const confirmButton = document.createElement("button");
   confirmButton.type = "button";

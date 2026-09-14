@@ -1,24 +1,35 @@
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 const CACHE_NAME = "mishitza-v7";
 =======
 const CACHE_NAME = "mishitza-v10-signal";
 >>>>>>> Stashed changes
+=======
+const CACHE_NAME = "mishitza-v9-signal";
+>>>>>>> 206b51879152cad89c8f530aaf82fb1acc3f9f8a
 const APP_ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
+=======
+>>>>>>> 206b51879152cad89c8f530aaf82fb1acc3f9f8a
   "./signal.css",
   "./signal-heading.ttf",
   "./signal-body.ttf",
   "./signal-bold.ttf",
   "./nav-upper.svg",
   "./nav-core.svg",
+<<<<<<< HEAD
   "./nav-lower.svg",
   "./exercise-play.svg",
   "./nav-workout.svg",
 >>>>>>> Stashed changes
+=======
+  "./nav-workout.svg",
+>>>>>>> 206b51879152cad89c8f530aaf82fb1acc3f9f8a
   "./app.js",
   "./manifest.webmanifest",
   "./icon.svg",
